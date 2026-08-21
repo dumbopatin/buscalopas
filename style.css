@@ -3716,6 +3716,36 @@ body.syntek-immunity #board {
         margin-bottom: 14px;
     }
 
+    /* En partida, sin el título grande "Buscalopas Cyber-Lopera Mission" (más aire
+       para el tablero; en el menú se sigue viendo).
+       - Se quita el DEALER flotante (la tienda se abre con el botón 💰 del HUD
+         o desde el menú de usuario; el globo flotante solo estorbaba). */
+    body:has(#game-screen:not(.hidden)) h1,
+    body:has(#game-screen:not(.hidden)) .subtitle {
+        display: none;
+    }
+
+    body:has(#game-screen:not(.hidden)) .hud-shop-btn {
+        display: none;
+    }
+
+    /* El temblor de Lucifer se aplica SOLO al tablero en móvil: si temblara
+       #game-screen, su transform haría de "containing block" de los globos
+       position:fixed (Spiz/Lucifer) y se posicionarían sobre el tablero. */
+    .lucifer-active {
+        animation: none;
+    }
+
+    .lucifer-active #board {
+        animation: shake 0.2s infinite;
+    }
+
+    /* La fila de botones (Menú/Reiniciar) baja un poco para no chocar con el
+       botón de volumen, que queda justo bajo el HUD. */
+    body:has(#game-screen:not(.hidden)) .game-controls {
+        margin-top: 34px;
+    }
+
     .menu-card {
         padding: 22px 16px;
         width: 100%;
@@ -3727,20 +3757,26 @@ body.syntek-immunity #board {
        Fila 1: título + menú de usuario + dinero (tienda).
        Fila 2: LopAmuletos con scroll horizontal (se ven todos los que quepan). --- */
     .hud-header {
-        padding: 6px 10px;
-        gap: 3px 8px;
+        padding: 6px 10px 8px;
+        gap: 4px 12px;
         align-items: center;
         flex-wrap: wrap;
+    }
+
+    /* La versión se quita en móvil: deja aire para separar título / usuario / dinero */
+    #hud-title-version {
+        display: none;
     }
 
     .hud-title {
         font-size: 0.7em;
         letter-spacing: 1px;
         white-space: nowrap;
+        padding: 6px 0;
     }
 
     .hud-stats {
-        gap: 8px;
+        gap: 12px;
         font-size: 0.9em;
         flex-wrap: nowrap;
         margin-left: auto;
@@ -3748,15 +3784,15 @@ body.syntek-immunity #board {
     }
 
     .hud-user {
-        padding: 7px 10px;
+        padding: 8px 13px;
         font-size: 1em;
         border-radius: 18px;
-        max-width: 140px;
+        max-width: 130px;
     }
 
     #hud-user {
         min-width: 0;
-        max-width: 92px;
+        max-width: 88px;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -3768,7 +3804,7 @@ body.syntek-immunity #board {
 
     .hud-money {
         font-size: 0.95em;
-        padding: 5px 10px;
+        padding: 8px 12px;
         white-space: nowrap;
     }
 
@@ -3779,7 +3815,7 @@ body.syntek-immunity #board {
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
         min-width: 0;
-        gap: 10px;
+        gap: 12px;
         min-height: 46px;
         padding: 1px 0 3px;
         justify-content: flex-start;
@@ -3804,9 +3840,12 @@ body.syntek-immunity #board {
         font-size: 0.55em;
     }
 
-    /* Botón ▾ "ver todos" + panel de todos los LopAmuletos (móvil) */
+    /* Botón ▾ "ver todos" (a la IZQUIERDA del todo de la fila de amuletos,
+       lejos del dinero y el menú) + panel de todos los LopAmuletos (móvil) */
     .hud-amulets-all {
         display: inline-flex;
+        flex-shrink: 0;
+        margin-right: 2px;
     }
 
     .hud-amulets-panel {
@@ -3922,29 +3961,45 @@ body.syntek-immunity #board {
         margin: 0 auto;
     }
 
-    /* Los popups de Spiz en móvil NO son flex-siblings del tablero (eso los
-       ponía a la derecha y desplazaba el contenedor): ahora son un globo
-       pequeño FIJO arriba-izquierda, bajo el HUD, sin mover la pantalla. */
+    /* Los popups de Spiz/Lucifer en móvil NO son flex-siblings del tablero:
+       son globos FIJO en zonas FUERA del tablero, sin chocar con el volumen,
+       el DEALER ni los botones de las reliquias (Syntek/Dragón, a la izquierda).
+       El de arriba-derecha lleva el bonus de Spiz y un mensaje de Lucifer; el
+       de abajo-derecha lleva el segundo mensaje de Lucifer. */
     .spiz-popup-left,
     .spiz-popup-right {
         position: fixed;
-        top: 170px;
-        left: 10px;
-        right: auto;
+        top: auto;
+        bottom: auto;
+        left: auto;
+        right: 10px;
         width: auto;
         max-width: min(240px, calc(100vw - 20px));
         margin: 0;
         order: 0;
         flex-shrink: 1;
         z-index: 2200;
-        padding: 10px 14px;
-        font-size: 0.8em;
+        padding: 7px 12px;
+        font-size: 0.75em;
+    }
+
+    .spiz-popup-left {
+        top: 108px;
+    }
+
+    .spiz-popup-right {
+        bottom: 170px;
     }
 
     .spiz-popup-word {
-        font-size: 1.4em;
+        font-size: 1.2em;
         letter-spacing: 2px;
-        margin-bottom: 2px;
+        margin-bottom: 1px;
+    }
+
+    .spiz-popup-body {
+        font-size: 0.9em;
+        line-height: 1.2;
     }
 
     /* --- Ranking lateral: en móvil es un desplegable (botón 🏆) --- */
@@ -4140,11 +4195,11 @@ body.syntek-immunity #board {
 
     /* --- Volumen flotante en móvil: botón PLEGADO (círculo con el símbolo
        del sonido) arriba-izquierda, en el hueco entre el HUD y el título.
-       No tapa la barra superior ni el título de "Buscalopas". Al tocarlo se
-       DESPLIEGA en horizontal con el deslizador y el % (se vuelve a plegar
-       tocando fuera). También está en ⚙️ Ajustes del menú. --- */
+       En PARTIDA baja a 112px (el título desaparece) para quedar claramente
+       POR DEBAJO de la barra de estados y los LopAmuletos y no pillarlos al
+       tocar. También está en ⚙️ Ajustes del menú. --- */
     #volume-control-floating {
-        top: 96px;
+        top: 100px;
         left: 10px;
         right: auto;
         bottom: auto;
@@ -4156,6 +4211,11 @@ body.syntek-immunity #board {
         justify-content: center;
         overflow: hidden;
         opacity: 0.95;
+        z-index: 1700;
+    }
+
+    body:has(#game-screen:not(.hidden)) #volume-control-floating {
+        top: 112px;
     }
 
     #volume-control-floating button {

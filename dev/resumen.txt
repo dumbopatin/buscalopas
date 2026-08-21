@@ -174,6 +174,19 @@ CONVENCIONES / OJOS ABIERTOS
 --------------------------------------------------------------------------------
 ÚLTIMAS SESIONES (solo lo que aún no está "asimilado" en el código)
 --------------------------------------------------------------------------------
+- 21/08: fix turulos en móvil (pulsación larga real con pointer events; se ignoraba
+  el click de "suelta de dedo" que destapaba la casilla justo al quitar la bandera
+  → BOOM pillado). RESPUESTA A BUG: en vista móvil con RATÓN (ventana estrecha) el
+  clic derecho ya no ponía turulos (lo había desactivado con isMobileView) → ahora
+  e.button===2 togglea; y respaldo por contextmenu (button 0, touch) si el navegador
+  cancela los pointer events (iOS), con lpHandled para no hacer doble toggle. Popups
+  de Spiz/Lucifer FUERA del tablero en móvil (arriba-derecha y abajo-derecha, sin
+  chocar con volumen ni reliquias); fix del temblor de Lucifer (shake solo en #board
+  en móvil: el transform de #game-screen rompía los position:fixed).
+  En partida en móvil: SIN título grande ni DEALER flotante (tienda con el botón 💰);
+  HUD con más separación título/usuario/dinero (versión oculta en móvil); volumen bajo
+  el HUD (100px menú / 112px partida, z-index 1700); flecha ▾ de LopAmuletos a la
+  IZQUIERDA del todo de la fila.
 - 20/08: mobile-first, iPod nano 3 fijo, chat WhatsApp, realtime, tienda con reliquias,
   formatMoney (Ks/Ms), iPod minimizable con shuffle, panel de LopAmuletos ▾, globos
   exclusivos, tablero 9x9 fijo, popup Spiz arriba-izquierda. Detalle: resumen-historico.
@@ -230,11 +243,13 @@ iPOD: ipodTrackUnlocked @3168, checkIpodTrackUnlocks @3176, getActiveTrack @3197
 PARTIDA/FLUJO: onUserReady @3666, isMobileView @3677, startGame @3688, showMenu @3698,
   initGame @3723, generateMines @3809, generateSpiz @3820, calculateNeighbors @3830,
   startTimer @3949, checkLuciferThreshold @3858, enterLuciferState @3872,
-  exitLuciferState @3907, triggerSpiz @4090, handleReveal @4120, handleTurulo @4240,
-  revealCell @4223, checkTuruloWin @4296, winGame @4508, revealAllCells @4547,
+  exitLuciferState @3907, triggerSpiz @4090, handleReveal @4142, handleTurulo @4271,
+  revealCell @4223, checkTuruloWin @4391, winGame @4508, revealAllCells @4547,
   settleGameCounters @2839, commitPlayTime @2939.
 TABLERO/RESPONSIVE: sidePanelReserve @3993, boardCellSize @3999, applyBoardCellSize @4007,
-  updateBoardFit @4012, renderBoard @4020, positionRelicButton @1955.
+  updateBoardFit @4012, renderBoard @4021, positionRelicButton @1955.
+PULSACIÓN LARGA MÓVIL (turulos): LP_MS @4341, cellFromTarget @4344, cancelLongPress @4353,
+  initMobileLongPress @4358 (estado: lpTimer/lpArmed/lpHandled/lpFiredCell/lpFiredUntil).
 SPIZ: spizSavedBonus @42, showSpizPopup @4184, maybeShowSpizTutorial @4216,
   spizTutorialSeen @3399, maybeQueueSpizNotice @3403.
 POPUPS/COLA: openInfoPopup @3313, closeInfoPopup @3325, queueNotice @3333,
@@ -255,9 +270,21 @@ RESUMEN MOBILE — CÓMO PULIR SIN ROMPER (para próximas sesiones)
 - Móvil = max-width:768px (isMobileView()). El @media al final de style.css.
 - El tablero usa var(--cell-size) calculado por boardCellSize()/applyBoardCellSize();
   updateBoardFit() añade .board-fits si cabe (9x9 no desplazable).
-- Los popups del Spiz en móvil son position:fixed arriba-izq (#spiz-popup-left).
+- Los popups de Spiz/Lucifer en móvil son position:fixed FUERA del tablero:
+  #spiz-popup-left arriba-derecha (top:108) y #spiz-popup-right abajo-derecha
+  (bottom:170), derecha:10px. No chocan con volumen ni con las reliquias (izq).
+  OJO: el shake de Lucifer en móvil se aplica a #board, NO a #game-screen (su
+  transform rompe el position:fixed de estos globos).
 - Globos exclusivos: closeMobilePanels(except) + listener global de mousedown.
-- Panel de LopAmuletos: botón #hud-amulets-all (▾) + #hud-amulets-panel.
+- Panel de LopAmuletos: botón #hud-amulets-all (▾, a la IZQUIERDA de la fila) +
+  #hud-amulets-panel.
+- En partida (móvil): el título h1/.subtitle y el DEALER (#hud-shop-btn) se ocultan
+  con body:has(#game-screen:not(.hidden)); la tienda se abre con 💰 del HUD.
+- Volumen móvil: top 100px (menú) / 112px (partida), left:10, z-index 1700.
+- Turulos en móvil = pulsación larga (pointerdown 420ms en #board, LP_MS); el
+  contextmenu en móvil: e.button===2 (ratón) togglea; button 0 (touch) solo actúa
+  de respaldo si el long-press no disparó (lpHandled). Ver initMobileLongPress.
+  OJO al tocar esto: el click tras la pulsación se suprime (lpFiredCell/lpFiredUntil).
 - iPod móvil: botón #ipod-minimize-btn + #ipod-shuffle; se minimiza en startGame.
 - Si tocas algo de UI, ejecuta npm run test-lopa y comprueba 390x844 (preview-mobile.sh).
 

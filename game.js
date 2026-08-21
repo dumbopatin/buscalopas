@@ -1380,8 +1380,9 @@ function renderHudAmulets() {
         const progBadge = (prog && (id === 'rastreador' || id === 'vidente' || id === 'dragon')) ? `<span class="amu-prog">${prog.cur >= prog.max ? '✓' : `${prog.cur}/${prog.max}`}</span>` : '';
         html += `<div class="amu${neg}${inact}" data-amulet-id="${id}">${amuletVisual(id)}${chargeBadge}${progBadge}</div>`;
     }
-    // Botón "ver todos" (solo en móvil; abre el panel con todos los LopAmuletos)
-    if (html) html += `<button id="hud-amulets-all" class="hud-amulets-all" type="button" title="Ver todos los LopAmuletos">▾</button>`;
+    // Botón "ver todos" (solo en móvil; abre el panel con todos los LopAmuletos).
+    // Va a la IZQUIERDA del todo (primero de la fila), lejos del dinero/menú.
+    if (html) html = `<button id="hud-amulets-all" class="hud-amulets-all" type="button" title="Ver todos los LopAmuletos">▾</button>` + html;
     container.innerHTML = html;
     renderHudAmuletsPanel();
 }
@@ -4028,6 +4029,8 @@ function renderBoard() {
         for (let c = 0; c < size; c++) {
             const cell = document.createElement('div');
             cell.classList.add('cell');
+            cell.dataset.r = r;
+            cell.dataset.c = c;
 
             if (revealed[r][c]) {
                 cell.classList.add('revealed');
@@ -4067,6 +4070,25 @@ function renderBoard() {
             cell.addEventListener('click', () => handleReveal(r, c));
             cell.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
+                if (isMobileView()) {
+                    // Ratón en vista móvil (ventana estrecha/escritorio): el clic
+                    // derecho pone/quita turulo (aquí no hay pulsación larga táctil).
+                    if (e.button === 2) {
+                        handleTurulo(r, c);
+                        return;
+                    }
+                    // Respaldo touch: si el navegador canceló el long-press por
+                    // pointer events (p.ej. iOS), el contextmenu nativo hace de
+                    // pulsación larga. lpHandled evita el doble toggle si el
+                    // long-press ya disparó; el click posterior se suprime.
+                    if (!lpHandled) {
+                        cancelLongPress();
+                        lpFiredCell = { r, c };
+                        lpFiredUntil = Date.now() + 2500;
+                        handleTurulo(r, c);
+                    }
+                    return;
+                }
                 handleTurulo(r, c);
             });
             if (spizCell && spizCell.r === r && spizCell.c === c && !spizTriggered && videnteOwned && !spizTutorialSeen()) {
@@ -4119,6 +4141,15 @@ function triggerSpiz() {
 
 function handleReveal(r, c) {
     if (gameOver || revealed[r][c] || turulos[r][c]) return;
+
+    // En móvil, tras poner/quitar un turulo con pulsación larga llega un
+    // `click` de "suelta de dedo" que no debe destapar la casilla (eso dejaba
+    // la partida "pillada": la casilla se destapaba justo después de quitar
+    // la bandera y si era bolsa → BOOM inmediato). Se ignora ese click.
+    if (lpFiredCell && lpFiredCell.r === r && lpFiredCell.c === c && Date.now() < lpFiredUntil) {
+        lpFiredCell = null;
+        return;
+    }
 
     if (!gameStarted) startTimer();
 
@@ -4291,6 +4322,70 @@ function handleTurulo(r, c) {
     if ((gameMode === 'classic' || gameMode === 'hybrid') && safeCellsRemaining === 0) {
         winGame(false);
     }
+}
+
+// --- PULSACIÓN LARGA EN MÓVIL (poner/quitar turulo) ---
+// En el móvil no hay clic derecho: se mantiene pulsada una casilla para
+// colocar/quitar un turulo. Se gestiona con eventos pointer sobre #board
+// (delegación: las celdas se regeneran en cada renderBoard). Si el dedo se
+// mueve (scroll horizontal del tablero 14/18) se cancela. Al dispararse se
+// marca la casilla para que el `click` posterior de "suelta de dedo" no la
+// destape (ver handleReveal).
+let lpTimer = null;
+let lpArmed = false;
+let lpHandled = false;
+let lpStartX = 0;
+let lpStartY = 0;
+let lpFiredCell = null;
+let lpFiredUntil = 0;
+const LP_MS = 420;
+const LP_MOVE_TOLERANCE = 14;
+
+function cellFromTarget(target) {
+    const cell = target && target.closest ? target.closest('.cell') : null;
+    if (!cell) return null;
+    const r = parseInt(cell.dataset.r, 10);
+    const c = parseInt(cell.dataset.c, 10);
+    if (isNaN(r) || isNaN(c)) return null;
+    return { r, c };
+}
+
+function cancelLongPress() {
+    lpArmed = false;
+    if (lpTimer) { clearTimeout(lpTimer); lpTimer = null; }
+}
+
+function initMobileLongPress() {
+    if (!boardEl) return;
+    boardEl.addEventListener('pointerdown', (e) => {
+        if (!isMobileView() || e.pointerType === 'mouse') return;
+        lpFiredCell = null;
+        lpHandled = false;
+        const pos = cellFromTarget(e.target);
+        if (!pos) return;
+        lpArmed = true;
+        lpStartX = e.clientX;
+        lpStartY = e.clientY;
+        if (lpTimer) clearTimeout(lpTimer);
+        lpTimer = setTimeout(() => {
+            lpTimer = null;
+            if (!lpArmed) return;
+            lpArmed = false;
+            lpHandled = true;
+            lpFiredCell = pos;
+            lpFiredUntil = Date.now() + 2500;
+            handleTurulo(pos.r, pos.c);
+        }, LP_MS);
+    });
+    boardEl.addEventListener('pointermove', (e) => {
+        if (!lpArmed || e.pointerType === 'mouse') return;
+        if (Math.abs(e.clientX - lpStartX) > LP_MOVE_TOLERANCE || Math.abs(e.clientY - lpStartY) > LP_MOVE_TOLERANCE) {
+            cancelLongPress();
+        }
+    });
+    boardEl.addEventListener('pointerup', cancelLongPress);
+    boardEl.addEventListener('pointercancel', cancelLongPress);
+    boardEl.addEventListener('pointerleave', cancelLongPress);
 }
 
 function checkTuruloWin() {
@@ -4573,6 +4668,9 @@ const resultDragHandleEl = resultCardEl ? resultCardEl.querySelector('.result-dr
 startResultDrag(resultDragHandleEl, true);
 startResultDrag(resultReopenBtnEl, false);
 applyResultPos(loadResultPos());
+
+// Pulsación larga en móvil para poner/quitar turulos
+initMobileLongPress();
 
 const hudTitleEl = document.querySelector('.hud-title');
 const hudTitleVersionEl = document.getElementById('hud-title-version');
