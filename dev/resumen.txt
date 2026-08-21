@@ -1,9 +1,21 @@
 ================================================================================
 BUSCALOPAS 2.0 — RESUMEN DE CONTEXTO PARA NUEVA SESIÓN (condensado 21/08)
 ================================================================================
-Juego tipo buscaminas "Cyber-Lopera" (móvil + desktop). SIN repo git.
+Juego tipo buscaminas "Cyber-Lopera" (móvil + desktop). Repo git (desde 21/08).
 Histórico detallado de sesiones previas: dev/resumen-historico-2026-08-20.txt
 (si necesitas cómo se hizo algo antiguo, léelo; si no, NO hace falta).
+
+REGLAS DE TRABAJO (importantes):
+- GIT: el usuario gestiona cuándo commitear/pushear. NO hacer `git add/commit/push`
+  por mi cuenta; solo cuando él lo pida explícitamente (ej. "sube los cambios").
+  Remote: https://github.com/dumbopatin/buscalopas.git (rama master, credencial
+  guardada en ~/.git-credentials). Comando útil para dejar listo:
+  `git add -A && git commit -m "..." && git push`.
+- RESUMEN: NO actualizar resumen.txt tras cada cambio; solo cuando el usuario lo
+  pida (como git). Al terminar una sesión sí suele pedir dejarlo al día.
+- No commitear archivos de datos locales (dev/scores.json, chat.json, friends.json,
+  notes.json) ni logs ni node_modules: ya están en .gitignore.
+
 
 --------------------------------------------------------------------------------
 ESTRUCTURA / QUÉ SE SUBE A NETLIFY
@@ -248,4 +260,17 @@ RESUMEN MOBILE — CÓMO PULIR SIN ROMPER (para próximas sesiones)
 - Panel de LopAmuletos: botón #hud-amulets-all (▾) + #hud-amulets-panel.
 - iPod móvil: botón #ipod-minimize-btn + #ipod-shuffle; se minimiza en startGame.
 - Si tocas algo de UI, ejecuta npm run test-lopa y comprueba 390x844 (preview-mobile.sh).
+
+--------------------------------------------------------------------------------
+ESTADO GIT / GITHUB (desde 21/08)
+--------------------------------------------------------------------------------
+- Repo local inicializado el 21/08 en la raíz del proyecto (sin subir a Netlify
+  nada nuevo por esto; git es solo control de versiones).
+- .gitignore: node_modules/, dev/server.log, *.log, dev/scores.json,
+  dev/chat.json, dev/friends.json, dev/notes.json, *.Zone.Identifier, etc.
+- Commit inicial: "Buscalopas 2.3: primer commit" (todo el código y assets).
+- Subido a https://github.com/dumbopatin/buscalopas (rama master).
+- Flujo a seguir (solo cuando el usuario lo pida): git add -A && git commit -m
+  "..." && git push.
+
 
