@@ -1,0 +1,26 @@
+# Dependencias
+node_modules/
+
+# Logs
+dev/server.log
+*.log
+
+# Datos locales del servidor de desarrollo (no son parte del código)
+dev/scores.json
+dev/chat.json
+dev/friends.json
+dev/notes.json
+
+# Sistema / editor
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Backups / temporales
+dev/indexNovoCyber.backup.html
+dev/indexNovoCyber2.html
+tmp/
+
+# Metadatos de Windows
+*:Zone.Identifier

@@ -1,0 +1,251 @@
+================================================================================
+BUSCALOPAS 2.0 — RESUMEN DE CONTEXTO PARA NUEVA SESIÓN (condensado 21/08)
+================================================================================
+Juego tipo buscaminas "Cyber-Lopera" (móvil + desktop). SIN repo git.
+Histórico detallado de sesiones previas: dev/resumen-historico-2026-08-20.txt
+(si necesitas cómo se hizo algo antiguo, léelo; si no, NO hace falta).
+
+--------------------------------------------------------------------------------
+ESTRUCTURA / QUÉ SE SUBE A NETLIFY
+--------------------------------------------------------------------------------
+- RAÍZ (/home/ed/proyectos/buscalopas) = sitio estático que SÍ se sube:
+    index.html, style.css, game.js, config.js, textos.js, pwsave.html,
+    vendor/ (supabase.min.js — sin él no hay Supabase), img/ (incl img/amulets/), audio/
+- dev/ = TODO lo que NO se sube: server.js, tests, scripts, resumen*.txt, logs, scores.json.
+- NO subir nunca: dev/, server.js, resumen*.txt, node_modules, nombres.txt (ya no existe).
+
+--------------------------------------------------------------------------------
+TRABAJAR / VERIFICAR (regla del proyecto)
+--------------------------------------------------------------------------------
+- Local: `bash dev/jugar.sh` (levanta server.js en :3000 y abre el navegador) o
+  `cd dev && npm start`. Para ver en el MÓVIL de la misma WiFi: http://<IP-PC>:3000/
+  (jugar.sh imprime la IP). NO abrir index.html con doble clic (file:// → CORS rompe fetch).
+- Vista móvil desde el PC: `cd dev && bash preview-mobile.sh` (Chromium 390x844 táctil).
+- Tras tocar lógica/UI: `cd dev && npm run test-lopa`  (Playwright, 48 checks).
+- Tras tocar economía/dificultad: `cd dev && npm run balance`.
+- Verificación sintaxis tras cada cambio: `node --check game.js` (raíz) y
+  `node --check server.js`, `node --check test-lopa.js`, `node --check balance-check.js` (dev/).
+- La versión vive en config.js: `window.APP_VERSION` (ahora '2.3'). Solo se toca ahí.
+
+--------------------------------------------------------------------------------
+ARQUITECTURA DE DATOS (DOBLE BACKEND)
+--------------------------------------------------------------------------------
+- config.js tiene SUPABASE_URL + anon key → el cliente usa Supabase (tabla scores
+  con stats como JSONB; además friendships, friend_requests, chat_messages, notes).
+- Sin Supabase (local/tests) → fallback a dev/server.js (scores.json) o localStorage.
+- PRODUCCIÓN = Netlify + Supabase SOLO (no hay server.js). Amigos/chat/notas/ranking
+  usan Supabase. Si Supabase falla, cae a localStorage (sin amigos ni ranking).
+- initSupabase(): probe HEAD a `/rest/v1/scores?select=name&limit=1` con apikey
+  (2s timeout). Si no responde, supabaseClient=null → todo local. NO usar la raíz
+  del dominio (404 sin CORS → rompía el deploy).
+- Realtime (badges chat/solicitudes en vivo): requiere el bloque "TIEMPO REAL" de
+  dev/supabase.sql (publicación supabase_realtime + replica identity full).
+  Sin él funciona el polling de respaldo (~10s).
+- Las notas y stats son POR USUARIO en Supabase (username PK).
+
+--------------------------------------------------------------------------------
+USUARIO DEIDAD "LUCIFER" (pruebas)
+--------------------------------------------------------------------------------
+- Entrar con usuario "Lucifer" / contraseña "lucifer". NO es un jugador normal:
+  isDeity(name) (case-insensitive) le da cartera 1.000.000 (DEITY_WALLET), todos
+  los LopAmuletos owned+active, 3 cargas, niveles 5, tienda abierta (applyDeityBoost).
+  loadRanking/searchUsers lo filtran (oculto). userExists devuelve false (no
+  agregable). No se puede registrar otro "Lucifer" (confirmPassword lo bloquea).
+- Broadcast: en su chat tiene "📢 Avisos de Lucifer" (BROADCAST_KEY '__avisos_lucifer__')
+  para enviar mensajes a todos (chat_messages con user_to=ese marker; local usa
+  /api/chat/broadcast). Los demás ven "😈 Lucifer" (chat 1-a-1) al principio de su lista.
+- OJO tests: los de broadcast escriben en dev/chat.json (canal de pruebas, tope 200).
+
+--------------------------------------------------------------------------------
+MECÁNICA DEL JUEGO (estado actual)
+--------------------------------------------------------------------------------
+- Tamaños 9/14/18 (9 por defecto; 14 y 18 se compran en tienda). Dificultad:
+  "0.06-180" Fácil, "0.10-120" Media, "0.14-60" Difícil (claves en select + textos.js).
+- 3 modos pero SOLO "classic" está desbloqueado (turulos/hybrid salen 🔒 disabled;
+  lockUnavailableModes). Los tests los habilitan con evaluate.
+- Elementos: minas "papela", celda "spiz" (+20% tiempo, +40% en Lucifer, bonus al
+  final si no se gasta), turulos = banderas (clic derecho).
+- Modo LUCIFER: entra al quedar ≤20% del tiempo. Turulos valen ×2·(1+0.5·nivel)
+  (luciferTuruloMultiplier). Nivel comprable en tienda (luciferUpgrade, máx 5).
+- Dinero al ganar: timeRemaining × mult (x1/x5/x20) × 0.1 + bonus amuletos/mejoras,
+  + turulos correctos (+1/+2/+3) + spiz guardado (escala: 20/60/120). Al perder SOLO turulos.
+- ESTADÍSTICAS (statsData, persistidas vía saveStats): { games, wins, losses,
+  bestEarning, spizSaved, timePlayed, luciferReached, luciferTime, turulosWins,
+  correctTurulos, ipod, ipodTrack, musicTime, ipodNotified, lopa:{...}, by{} }.
+  - lopa = { shopUnlocked, owned{}, active{}, charges{milagro,ultimobaile,vidente},
+    levels{spiz,dinero,lucifer}, uses{subidon,dragon}, order[], relicGames, acquired{} }.
+  - by{} = partidas por "dificultad_tamaño" → {g,w,l}.
+  - OJO: las ganancias usan gameCorrectTurulos (de LA PARTIDA), no el total de por vida.
+
+--------------------------------------------------------------------------------
+LOPAMULETOS / TIENDA (estado actual)
+--------------------------------------------------------------------------------
+- TIENDA = Dragon Narco de Ojos Azules. Stock diario con PRNG por fecha (3 objetos
+  daily: milagro, ultimobaile, spizUpgrade, dineroUpgrade) + essentials siempre
+  (board14, board18, chami) + reliquias (syntek 400€, nword 300€, charlie 250€ —
+  requieren iPod, visibles pero bloqueadas sin él). Regala la Carta del Dragón la 1ª vez.
+- AMULETOS (textos.js + buildAmulet, placeholders {VIDENTE_RECHARGE_EVERY}...):
+  positivos: rizao, subidon, iman, vidente, papu, rastreador.
+  de carga (CHARGE_AMULETS): milagro, ultimobaile. negativos permanentes: mala, sombra, gafe.
+  RELIC: dragon (Carta del Dragón, botón +50€ cada 10 partidas), syntek (inmunidad 3s
+  si suena "Duele el Amor" y está activa), nword (da "Hypnotize"), charlie (da la canción).
+- VIDENTE = de cargas (1/partida, recarga +1 cada 5 victorias desde que se obtuvo,
+  máx 3). Sin carga no revela el Spiz.
+- HUD: los amuletos se ordenan por lopa.order (orden de adquisición). Los upgrades
+  (level-spiz, level-dinero, level-lucifer, reveal-lvl) también entran en order.
+- IMPORTANTE: ALL_AMULETS se construye con Object.assign({}, ..., {dragon: RELIC_DRAGON})
+  (si se pasa RELIC_DRAGON directo rompe renderHudAmulets).
+- MÓVIL: fila con scroll horizontal + botón "▾" (#hud-amulets-all) que abre el panel
+  con TODOS los LopAmuletos (ver/activar/desactivar, clic → visor). El visor
+  (#amulet-modal) tiene el toggle de activar/desactivar (positivos pasivos).
+
+--------------------------------------------------------------------------------
+iPOD (música de fondo) — estado actual
+--------------------------------------------------------------------------------
+- Reproductor nano 3 NEGRO fijo sobre el fondo (no modal). Se compra en tienda (666€).
+- Elige la música de fondo del juego (playNormalMusic usa la pista activa).
+- IPOD_TRACKS: cyber (siempre), luciferbeats (Lucifer ≥1), spizamarillo (spizSaved≥10),
+  nhh/cousins (losses≥25), dueleamor (reliquia Syntek), biggie (reliquia N Word),
+  charlie (reliquia Charlie Kirk). El tiempo escuchando (musicTime) es PRIVADO.
+- MÓVIL: botón "—" minimiza a un iPod SHUFFLE compacto (clip + canción + ⏮▶⏸⏭ que
+  funcionan). Al entrar en el tablero se minimiza por defecto; al volver al menú se
+  expande. Estado: setIpodMinimized()/toggleIpodMinimized()/ipodMinimized.
+
+--------------------------------------------------------------------------------
+RANKING / RESULTADO / CHAT-AMIGOS / UI MÓVIL (estado actual)
+--------------------------------------------------------------------------------
+- RANKING: lista COMPLETA, top 5 numerados + tu fila aparte con borde discontinuo si
+  estás fuera. Clic en fila → perfil del jugador (agregar/aceptar amigo). En móvil es
+  un desplegable con el botón 🏆 (#ranking-toggle-btn).
+- RESULTADO DE PARTIDA (#result-modal .modal-float): tarjeta flotante arrastrable
+  (asa ⠿), botón ✕ la pliega y aparece el círculo 💰 para reabrir (posición en
+  localStorage 'buscalopas_result_pos'). Desglose de ganancias + LopAmuletos
+  conseguidos como botones (se quitan al verlos). MÓVIL: compacto (52vh máx), título
+  de sección "🔮 LopAmuletos 🆕".
+- CHAT (estilo WhatsApp, botón 💬 abajo-izq): lista de conversaciones con badge de
+  no leídos + conversación con input. Polling 3s. Límites: 500 chars, 1 msg/1,2s.
+- AMIGOS (botón 🤝 sobre el chat): desplegable con amigos + solicitudes entrantes/
+  enviadas + input para agregar (solo usuarios que existen). Modal con pestañas
+  Lista/Solicitudes/Agregar/Buscar.
+- REGISTRO: amigos/chat/info SOLO con cuenta con contraseña (isLoggedIn). Los botones
+  flotantes se ocultan sin sesión. Registro transfiere notas/amistades/chat al cambiar de usuario.
+- MÓVIL (max-width:768px, isMobileView()):
+  - HUD en 2 filas (fila1: título + usuario + dinero; fila2: LopAmuletos con scroll).
+  - Dinero formateado con formatMoney(): ≥1000 → "X.XK", ≥1M → "X.XM".
+  - Popup del Spiz: globo FIJO arriba-izquierda, pequeño ("SPIZ +Xs"), no mueve pantalla.
+  - Tablero 9x9 si cabe → .board-fits (sin scroll, centrado); 14/18 → scroll horizontal.
+  - Globos chat/amigos/ranking/panel-amuletos: EXCLUSIVOS (abrir uno cierra los demás)
+    y se cierran clicando fuera (closeMobilePanels + listener global).
+  - Volumen plegado arriba-izq (toca para desplegar); también en ⚙️ Ajustes del menú.
+
+--------------------------------------------------------------------------------
+CONVENCIONES / OJOS ABIERTOS
+--------------------------------------------------------------------------------
+- NO añadir comentarios al código salvo que se pida. Código en español, nombres mezclados.
+- Textos del juego en textos.js (window.TEXTOS): heroes, lucifer, dificultades, modos,
+  cantidades, amuletos, tienda, resultado, nombres, ui. Si no existe, game.js cae a
+  fallbacks inline. Para refinar textos: editar SOLO textos.js.
+- Función global amuletImgFallback(el) en onerror de <img> de amuletos (emoji si falta sprite).
+- Guardar contraseña del navegador: offerPasswordSave() → POST a pwsave.html en iframe
+  (NO quitar pwsave.html, se sube).
+- autocomplete: user/username, pass/current-password (login), new-password (crear cuenta).
+- Los desbloqueos en partida son TOASTS breves (no modales). El regalo del dragón sí abre modal.
+- MODALES que se cierran clicando fuera: CLICK_OUTSIDE_MODALS (user, pass, info, friends,
+  player, notes, settings, shop, amulet). #amulet-modal z-index 2500 (por encima del resultado).
+- PENDIENTES conocidos: sonido SFX de notificaciones (parcial: playUiSound ya existe en
+  desbloqueos); +50€ del dragón pendiente de tunear; limpieza de cuentas de prueba en
+  Supabase (NUNCA borrar usuarios reales tipo xX_*, ~*_*~, perry, paul666, pedro1...);
+  revisión de balance de la primera compra (150€ ≈ 12 victorias en Fácil).
+- IDEAS del usuario: multijugador; reproductor con lista desplegable; grupos/lobbies con
+  playlist común; intentar NO leer todo el código (grep/lecturas puntuales).
+
+--------------------------------------------------------------------------------
+ÚLTIMAS SESIONES (solo lo que aún no está "asimilado" en el código)
+--------------------------------------------------------------------------------
+- 20/08: mobile-first, iPod nano 3 fijo, chat WhatsApp, realtime, tienda con reliquias,
+  formatMoney (Ks/Ms), iPod minimizable con shuffle, panel de LopAmuletos ▾, globos
+  exclusivos, tablero 9x9 fijo, popup Spiz arriba-izquierda. Detalle: resumen-historico.
+- ⚠️ REDEPLOY a Netlify tras cada cambio: subir index.html, game.js y style.css
+  (y config.js/textos.js si cambian).
+
+--------------------------------------------------------------------------------
+MAPA DE SÍMBOLOS — game.js (por área, "función @ línea"; grep el nombre si cambia)
+--------------------------------------------------------------------------------
+CONFIG/CONSTANTES: SHOP_WINS_REQ @49, MAX_UPGRADE_LEVEL @51, MAX_CHARGES @52,
+  PAPU_TIME @53, MALA_TIME @54, SPIZ_LEVEL_PCT @57, RASTREADOR_EVERY @62,
+  VIDENTE_RECHARGE_EVERY @66, RELIC_DRAGON_EVERY @69, RELIC_DRAGON_BONUS @70,
+  SYNTEK_IMMUNITY_MS @71, DEITY_NAME/WALLET @76-78, IPOD_TRACKS @118,
+  SHOP_ITEMS @143, DIFF_LABELS @1176, SIZES @1177, UPGRADE_IDS @1271,
+  CHAT_MAX_LEN @2583, CHAT_MIN_INTERVAL_MS @2584.
+AMULETOS: buildAmulet @87, LOPAMULETOS @99, CHARGE_AMULETS @100, NEGATIVE_AMULETS @101,
+  RELIC_DRAGON @105, ALL_AMULETS @107, AMULET_ORDER @115, amuletUnlocked @1256,
+  markAcquired @1277, checkAmuletUnlocks @1294, isAmuletActive @1321, toggleAmulet @1330,
+  amuletProgress @1340, orderedAmuletIds @1350, renderHudAmulets @1359,
+  renderHudAmuletsPanel @1390, toggleHudAmuletsPanel @1429, amuletInfo @1436,
+  amuletVisual @1456, amuletImgFallback @1465, openAmuletModal @1514, closeAmuletModal @1565.
+DINERO/FORMATO: formatMoney @473, updateWalletDisplay @486, addMoney @494.
+USUARIO/LOGIN: getUsername @504, isLoggedIn @508, hashPassword @532, setUsername @523,
+  loadNames @695, pickUnusedName @720, generateLopero @775, confirmUser @788,
+  registerUser @864, finishLogin @855, confirmPassword @1031, doCreatePassword @1061,
+  offerPasswordSave @1102, transferUserData @1136, logout @915, doLogout @920,
+  updateDropdown @896, openUserModal @746, openPassModal @1016, renderRegisterBanner @888.
+ESTADÍSTICAS: emptyStats @548, normalizeStats @558, readLocalStats @597, loadStats @610,
+  saveStats @640, recordGameResult @647, pushStats @665, applyDeityBoost @627.
+TOAST/NOTIFS: renderToast @969, showToast @998, showNotification @1002, hideToast @1006.
+SUPABASE/DOBLE BACKEND: supabaseFetch @3468, initSupabase @3482, fetchPlayerData @3508,
+  pushPlayerData @3527, pushWalletExact @3546, fetchLeaderboard @3561, loadRanking @3638,
+  loadPlayerFromServer @3590, rememberPassHash @3624, getPassHash @3628.
+AMIGOS/CHAT: loadFriends @1706, postFriendAction @1768, addFriend @1825, acceptFriend @1859,
+  declineFriend @1877, cancelRequest @1893, removeFriend @1909, searchUsers @2024,
+  openFriendsModal @2043, openPlayerModal @2171, toggleRequestsDropdown @2300,
+  toggleChatPanel @2331, closeChatPanel @2352, renderChatView @2379, openChatWith @2459,
+  loadChat @2513, loadBroadcast @2550, refreshChat @2576, sendChatMessage @2587,
+  sendBroadcastMessage @2625, renderChatFriends @2430, computeUnread @2411,
+  startChatPolling @2360, startFriendsPolling @2657, renderBadges @2239,
+  closeMobilePanels @2233, toggleRankingPanel @2222.
+REALTIME/SONIDO: startRealtime @2731, stopRealtime @2754, syncRealtime @2762,
+  handleRealtimeMessage @2767, playMessageSound @2676, playUiSound @2700, vibrate @2723.
+RELICIAS: dragonRelicReady @1927, syntekRelicReady @1932, updateRelicDragonButton @1938,
+  positionRelicButton @1955, useRelicDragon @1990, useRelicSyntek @2011.
+CONFIRMACIÓN: showConfirmBubble @2115, hideConfirmBubble @2108.
+TIENDA: checkShopUnlock @2913, shopItemState @2968, shopItemPrice @3005, getTodayStock @3027,
+  shopItemVisible @3039, renderShop @3067, renderShopIpod @3106, buyIpod @3128,
+  giftDragonRelic @3147, openShopModal @3158, buyShopItem @3422.
+iPOD: ipodTrackUnlocked @3168, checkIpodTrackUnlocks @3176, getActiveTrack @3197,
+  setIpodMinimized @3211, toggleIpodMinimized @3220, updateIpodShuffleTrack @3224,
+  renderIpodPanel @3231, renderIpodTrackList @3239, selectIpodTrack @3267,
+  playSelectedTrack @3279, startMusicTimeTracking @3300.
+PARTIDA/FLUJO: onUserReady @3666, isMobileView @3677, startGame @3688, showMenu @3698,
+  initGame @3723, generateMines @3809, generateSpiz @3820, calculateNeighbors @3830,
+  startTimer @3949, checkLuciferThreshold @3858, enterLuciferState @3872,
+  exitLuciferState @3907, triggerSpiz @4090, handleReveal @4120, handleTurulo @4240,
+  revealCell @4223, checkTuruloWin @4296, winGame @4508, revealAllCells @4547,
+  settleGameCounters @2839, commitPlayTime @2939.
+TABLERO/RESPONSIVE: sidePanelReserve @3993, boardCellSize @3999, applyBoardCellSize @4007,
+  updateBoardFit @4012, renderBoard @4020, positionRelicButton @1955.
+SPIZ: spizSavedBonus @42, showSpizPopup @4184, maybeShowSpizTutorial @4216,
+  spizTutorialSeen @3399, maybeQueueSpizNotice @3403.
+POPUPS/COLA: openInfoPopup @3313, closeInfoPopup @3325, queueNotice @3333,
+  showNextNotice @3337, flushNotices @3361, showResultAfterNotices @3368.
+RESULTADO: buildWinBreakdown @4302, buildLossBreakdown @4333, renderResultEarnings @4343,
+  renderResultAmulets @4358, renderResultFromLast @4375, openResultScreen @4386,
+  showResultCard @4399, hideResultCard @4407, clearLastResult @4413, loadResultPos @4427,
+  saveResultPos @4434, applyResultPos @4438, startResultDrag @4449,
+  turuloBonusPerFlag @4489, luciferTuruloMultiplier @4495.
+AUDIO/MÚSICA: loadSavedVolume @325, applyVolume @332, setVolumeFromInput @375, toggleMute @382,
+  expandVolume @400, openSettingsModal @432, playNormalMusic @445, playLuciferMusic @461.
+HERRAMIENTAS: escapeHtml @517, pullEmoji @962, hashString @3012, mulberry32 @3018,
+  formatTimeShort @3259, CLICK_OUTSIDE_MODALS @4674, applyTextosToSelects @5088,
+  lockUnavailableModes @5099, updateDifficultyOptions @2871, updateSizeOptions @2890.
+--------------------------------------------------------------------------------
+RESUMEN MOBILE — CÓMO PULIR SIN ROMPER (para próximas sesiones)
+--------------------------------------------------------------------------------
+- Móvil = max-width:768px (isMobileView()). El @media al final de style.css.
+- El tablero usa var(--cell-size) calculado por boardCellSize()/applyBoardCellSize();
+  updateBoardFit() añade .board-fits si cabe (9x9 no desplazable).
+- Los popups del Spiz en móvil son position:fixed arriba-izq (#spiz-popup-left).
+- Globos exclusivos: closeMobilePanels(except) + listener global de mousedown.
+- Panel de LopAmuletos: botón #hud-amulets-all (▾) + #hud-amulets-panel.
+- iPod móvil: botón #ipod-minimize-btn + #ipod-shuffle; se minimiza en startGame.
+- Si tocas algo de UI, ejecuta npm run test-lopa y comprueba 390x844 (preview-mobile.sh).
+

@@ -1,0 +1,1559 @@
+================================================================================
+BUSCALOPAS 2.0 — RESUMEN DE CONTEXTO PARA NUEVA SESIÓN
+================================================================================
+Juego tipo buscaminas temático "Cyber-Lopera". Última actualización: 19/08/2026.
+Carpeta: /home/ed/proyectos/buscalopas  (sin repo git).
+
+--------------------------------------------------------------------------------
+ESTRUCTURA / ARCHIVOS  (RUTAS DESDE LA RAÍZ DEL PROYECTO)
+-------------------------------------------------------------------------------
+- ⬆️ LO QUE SE SUBE A NETLIFY (raíz, sitio estático) — IMPORTANTE incluir TODO:
+    index.html, style.css, game.js, config.js, textos.js, pwsave.html,
+    vendor/ (supabase.min.js — SIN esto no hay Supabase en el cliente),
+    img/ (incluido img/amulets/), audio/
+    (nombres.txt ya NO existe: los nombres viven en TEXTOS.nombres de textos.js).
+- dev/ → TODO LO QUE NO SE SUBE (desarrollo/servidor). Para trabajar: `cd dev && npm run ...`.
+- dev/jugar.sh → ABRE EL JUEGO EN LOCAL (doble clic / `bash dev/jugar.sh`): levanta
+    server.js si no corre y abre el navegador. ESTÁ EN dev/ DESDE 20/08 (antes en la raíz).
+- dev/server.js      → Servidor estático (Node http) + API de ranking, notas, amigos y chat. Puerto 3000.
+                      SIRVE los estáticos desde la RAÍZ (..) y guarda sus datos (scores/notes/friends/chat.json)
+                      DENTRO de dev/. En Netlify NO se usa (no hay /api): amigos/chat/notas caen a localStorage.
+- dev/test-lopa.js   → SUITE DE TESTS AUTOMATIZADOS CON PLAYWRIGHT (npm run test-lopa desde dev/).
+- dev/balance-check.js → SCRIPT DE EQUILIBRIO ECONÓMICO (npm run balance desde dev/).
+- dev/package.json   → scripts: start / test-lopa / balance (relativos a dev/).
+- dev/node_modules/  → playwright (devDependency). NO se sube.
+- dev/resumen.txt    → ESTE ARCHIVO (contexto de sesión). NO se sube.
+- dev/supabase.sql   → Esquema de la tabla 'scores' para Supabase. NO se sube.
+- dev/indexNovoCyber*.html → backups antiguos del HTML. NO se suben.
+- ⚠️ REGLA DESDE 19/08: todo lo que NO se suba a producción va a dev/; la raíz solo tiene lo estático.
+- DESDE 19/08 (3ª sesión, amigos): amigos/chat/notas YA FUNCIONAN en Netlify con SOLO Supabase.
+  Antes necesitaban server.js; ahora game.js usa Supabase (tablas friendships, friend_requests,
+  chat_messages, notes) cuando SUPABASE_URL está activo, y server.js/localStorage como fallback local
+  (dev/tests). El SQL nuevo está en dev/supabase.sql (hay que ejecutarlo en Supabase, ver instrucciones).
+
+--------------------------------------------------------------------------------
+ARQUITECTURA DE DATOS / DOBLE BACKEND
+--------------------------------------------------------------------------------
+- Si SUPABASE_URL + anon key están en config.js → el cliente usa Supabase (tabla scores: name, score, total, pass, stats).
+- Si no hay Supabase o falla → fetch a server.js (scores.json) / localStorage.
+- API de server.js: /api/leaderboard (AHORA devuelve TODOS los jugadores ordenados, no top 10), /api/players,
+  /api/player, /api/score (POST), /api/notes (GET/POST), /api/friends (GET {friends,incoming,outgoing} /
+  POST request|accept|decline|cancel|remove), /api/user?name= (existe o no), /api/search?q=, /api/chat (GET/POST).
+  server.js SOLO se usa en local/dev/tests. En Netlify (producción) los amigos/chat/notas van a Supabase.
+- CAPA SUPABASE DE AMIGOS/CHAT/NOTAS (19/08, 3ª sesión): si supabaseClient está activo, game.js usa:
+  - friends: loadFriends() = friendships (user_a<user_b) + friend_requests (from/to). postFriendAction():
+    request→insert friend_requests (upsert onConflict), accept→delete request + upsert friendships,
+    decline/cancel→delete request, remove→delete friendships por par ordenado. userExists()/searchUsers()
+    ya consultaban la tabla scores de Supabase (siguen igual).
+  - chat: loadChat() = 2 selects (name→with y with→name) por created_at asc, se fusionan con el espejo
+    localStorage; sendChatMessage() inserta en chat_messages con created_at=Date.now().
+  - notas: loadNotes()/saveNotes() usan la tabla notes POR USUARIO (username PK, upsert onConflict).
+    OJO: en el server.js local las notas eran globales; en Supabase ahora son por usuario.
+  - openPlayerModal() ahora usa fetchPlayerData() (Supabase-aware) en vez de /api/player directo, así el
+    perfil del ranking muestra datos en Netlify. Si data.stats es string (columna text), lo parsea.
+  - Si Supabase falla (sin red/error), cada función cae a su fallback: localStorage (amigos/chat/notas).
+- La cartera y el total se guardan en localStorage ('buscalopas_wallet', 'buscalopas_total') y se sincronizan al servidor.
+- statsData (estadísticas por jugador) vive en statsData y se persiste vía saveStats() → localStorage + pushStats().
+  Estructura: { games, wins, losses, bestEarning, spizSaved, timePlayed, luciferReached, turulosWins, correctTurulos,
+               lopa: { shopUnlocked, owned{}, active{}, charges{milagro,ultimobaile}, levels{spiz,dinero},
+                       uses{subidon}, order[] }, by{} }
+  - uses.subidon: contador persistente de veces que se ha activado el Subidón.
+  - order[]: orden de adquisición de amuletos (para mostrarlos de izquierda a derecha en el HUD).
+- by{} guarda partidas por clave "dificultad_tamaño" (ej "0.08-180_10") → {g,w,l}.
+
+--------------------------------------------------------------------------------
+MECÁNICA DEL JUEGO
+--------------------------------------------------------------------------------
+- Tablero tamaño 10/15/20 (desbloqueables en tienda). Dificultad = ratio de minas-tiempo:
+  "0.08-180" Fácil, "0.12-120" Media (1 victoria), "0.16-60" Difícil (tienda).
+- 3 modos: classic (destapar todo), turulos (marcar todas las minas), hybrid (cualquiera).
+- Elementos: minas "papela", celda "spiz" que da tiempo (+20% normal, +40% en Lucifer, +50€ si se guarda al final), turulos = banderas.
+- Modo LUCIFER: entra cuando queda ≤20% del tiempo → música, mensajes, pantalla que tiembla.
+- Dinero al ganar: timeRemaining × multiplicador (x1 fácil / x5 media / x20 difícil) × 0.1, +bonus de mejoras.
+- DINERO POR TURULOS: al final de partida, +1€/turulo correcto en fácil, +2€ media, +3€ difícil. Se cobra también al perder.
+  OJO (bug arreglado 19/08): las ganancias usan gameCorrectTurulos (contador de LA PARTIDA), no el
+  statsData.correctTurulos (de por vida). gameCorrectTurulos se reinicia en initGame, sube/baja al
+  colocar/quitar bandera en mina. statsData.correctTurulos sigue siendo el total de por vida (desbloqueos/progreso).
+
+--------------------------------------------------------------------------------
+PROGRESIÓN / TIENDA / AMULETOS (SESION 19/08 — ACTUALIZADO)
+--------------------------------------------------------------------------------
+- Tienda se desbloquea con 5 victorias o 10 min jugados.
+- TIENDA REHECHA: regentada por el DRAGON NARCO DE OJOS AZULES, "el dealer de los dealers".
+  - El modal muestra el sprite img/dragon.jpg a la DERECHA ocupando CASI TODA LA MITAD DERECHA (muy grande) +
+    la CARTERA EN GRANDE encima del dragón (.shop-wallet-big) para ver bien el dinero durante la compra.
+    Columnas: .shop-stock (izq) + .shop-right (47%, con wallet-big arriba y .shop-dragon rellenando el resto).
+    DESDE 19/08 (2ª sesión): .shop-dragon img pasa a object-fit:contain con max-width/max-height 100%
+    (antes cover 100%x100% que RECORTABA la imagen). El dragón se ve ENTERO y encaja sin sobresalir.
+  - STOCK ROTATIVO DIARIO: getTodayStock() selecciona 3 de los objetos "daily" (milagro, ultimobaile,
+    spizUpgrade, dineroUpgrade) con PRNG sembrado por fecha (hashString + mulberry32); los "essential"
+    (board15, board20, chami) siempre están. shopItemVisible() oculta comprados/maxeados y aplica
+    reqStats (desbloqueos por estadísticas): board20→wins>=3, milagro/ultimobaile→luciferReached>=1,
+    spizUpgrade→spizSaved>=1, dineroUpgrade→wins>=2.
+  - REGALO: la primera vez que se abre la tienda, giftDragonRelic() da la RELIQUIA
+    "Carta del Dragon Narco" (RELIC_DRAGON, id 'dragon', sprite img/amulets/dragon.jpg) y abre su modal.
+- AMULETOS (iconos emoji + sprite en img/amulets/<id>.png con fallback a emoji si falta la imagen):
+  Positivos (LOPAMULETOS): rizao, subidon, iman, vidente, papu, rastreador.
+  De carga (CHARGE_AMULETS): milagro (sobrevive a pisar mina, recarga al ganar), ultimobaile (prórroga +5s, recarga en Lucifer).
+  NEGATIVOS (NEGATIVE_AMULETS, maldiciones PERMANENTES): mala (-10s inicio, 5 derrotas), sombra (-10% dinero, 15 derrotas),
+    gafe (-10% tiempo de Spiz, 30 derrotas).
+  RELIC: dragon (Carta del Dragon Narco, sin efecto, no desactivable). Está en ALL_AMULETS.
+- VIDENTE (cambiado 19/08): ahora es DE CARGAS. Cada partida que empieces con el Vidente activo consume 1 carga
+  (statsData.lopa.charges.vidente) y muestra el Spiz. Se recarga +1 cada 5 victorias (hito de wins, en
+  settleGameCounters con gameStartWins; VIDENTE_RECHARGE_EVERY=5, máx 3). Al desbloquearse regala 1 carga.
+  Tooltip/visor/HUD muestran cargas + progreso "X/5 victorias". Si no hay carga, no se muestra el Spiz.
+- NOMBRES: los amuletos muestran SOLO su nombre (Rizao, Subidón, Imán, Vidente, Papu, Rastreador, Milagro,
+  Último Baile, Mala Pipa, Sombra, Gafe) — sin prefijo "Amuleto de/del/la".
+- ORDEN DEL HUD: renderHudAmulets() recorre orderedAmuletIds() = lopa.order (orden de adquisición, vía markAcquired())
+  primero, AMULET_ORDER como fallback y UPGRADE_IDS al final. Desde 19/08 los upgrades (level-spiz, level-dinero,
+  reveal-lvl) TAMBIÉN entran en lopa.order (markAcquired al comprarlos o al subir el Spiz Revelador), así que TODO
+  aparece de IZQUIERDA A DERECHA en el orden en que se obtuvo (por compra o por obtención), con los últimos a la
+  derecha. UPGRADE_IDS = ['level-spiz','level-dinero','reveal-lvl']; normalizeStats conserva esos ids en el order.
+- SUBIDÓN ARREGLADO: +10s al entrar en Lucifer SOLO UNA VEZ POR PARTIDA (subidonUsedThisGame), con contador
+  persistente uses.subidon visible en tooltip/visor ("Usado N vez(es) · 1 por partida"). Antes entraba en bucle infinito.
+- HUD SIN PARPADEO: eliminada la animación CSS amuletIn de .amu; al re-renderizar solo cambia color/opacidad (activo/inactivo).
+- AMULETOS ACTIVABLES/DESACTIVABLES: los pasivos positivos se activan/desactivan desde el visor (statsData.lopa.active).
+  isAmuletActive(id) = owned && active !== false. Negativos y de carga no son toggleables.
+- VISOR DE AMULETOS: clic sobre el icono del HUD abre modal (sprite + nombre + descripción + estado + toggle).
+- TOOLTIP en hover sobre los amuletos del HUD (sprite + descripción + estado/cargas/progreso).
+- ESTADÍSTICAS CONGELADAS DURANTE LA PARTIDA: hudCorrectTurulos se congela al iniciar (initGame) y solo se actualiza
+  al final vía settleGameCounters() (winGame, derrotas, showMenu). Las recargas por turulos se liquidan al final.
+- Rastreador muestra progreso "X/50" en HUD; milagro/ultimobaile muestran su recarga en tooltip/visor.
+- IMPORTANTE (bug encontrado y arreglado en esta sesión): ALL_AMULETS debe construirse con
+  Object.assign({}, ..., { dragon: RELIC_DRAGON }); si se pasa RELIC_DRAGON directo, copia sus claves
+  (id/name/icon/img/relic/desc) en vez de la clave 'dragon' y rompe renderHudAmulets.
+
+--------------------------------------------------------------------------------
+RANKING / NAVEGACIÓN / AUDIO (ACTUALIZADO 19/08)
+--------------------------------------------------------------------------------
+- RANKING: fetchLeaderboard() pide la lista COMPLETA (Supabase sin .limit(5) y server.js sin slice). loadRanking()
+  muestra el top 5 con número explícito (.lb-rank, ya no se usa counter CSS) y, si el jugador no está en el top 5,
+  añade una fila extra .lb-below con su número real y borde discontinuo rosa ("claramente fuera de los primeros puestos").
+- TÍTULO HUD → MENÚ: clic en ".hud-title" vuelve al menú principal sin confirmación (solo single player por ahora).
+- MÚSICA: startInitialMusic()/playNormalMusic()/playLuciferMusic() ya NO abortan con volumen 0 o muteado; siempre
+  intentan play() para que la música "suene" (aunque inaudible) desde el inicio aunque el volumen esté bajado.
+
+--------------------------------------------------------------------------------
+PANTALLA DE RESULTADO / DISTRIBUCIÓN HUD (SESIÓN 19/08 — AMPLIACIÓN)
+--------------------------------------------------------------------------------
+- PANTALLA DE RESULTADO (#result-modal): reemplaza a los alert() de ganar/perder. Ventana fija (.modal fixed) que
+  muestra título (Victoria / BOOM / Tiempo agotado / Spiz guardado), subtítulo con la misión y el DESGLOSE DE
+  GANANCIAS (#result-earnings) con filas por fuente: "Tiempo restante (Xs × mult)", "LopAmuleto Rizao (+10%)",
+  "Mejora de dinero (+N%)", "LopAmuleto Sombra (-10%)", "Spiz guardado (+50)", "Turulos correctos (N × M)" y Total.
+  - buildWinBreakdown()/buildLossBreakdown() sustituyen a calculateEarnings(); suman piezas con floor individual
+    para que las filas y el Total coincidan exactamente con el dinero que se cobra (addMoney usa breakdown.total).
+  - Se cobra en derrota SOLO por turulos (igual que antes).
+- LOPAMULETOS CONSEGUIDOS COMO BOTONES: gameEarnedAmulets[] se llena en checkAmuletUnlocks() (solo durante la
+  partida; se resetea en initGame). openResultScreen() los muestra en #result-amulets como botones con sprite/emoji
+  + nombre. Al pulsarlos abren el visor con unlock=true (openAmuletModal(id, true)); al cerrar el visor, el botón
+  desaparece (closeAmuletModal() filtra resultAmuletIds y re-renderiza). La sección se oculta si no queda ninguno.
+  - OJO: #amulet-modal tiene z-index 2500 para quedar POR ENCIMA de #result-modal (si no, el visor quedaba detrás
+    del resultado y el botón "A la siguiente lopa" interceptaba los clics).
+  - initGame()/showMenu() ocultan #result-modal y resetean resultAmuletIds.
+- DISTRIBUCIÓN DE ELEMENTOS "FARLOPÍN" (pantalla de juego):
+  - .hero-info-card ahora es una franja compacta (título + misión al lado, texto de misión atenuado), ya no ocupa
+    el centro. Máximo 660px, margen inferior.
+  - RELOJ INDEPENDIENTE: .timer-big (Orbitron, cyan) separado de la barra de stats, dentro de .game-hud-row.
+    En modo Lucifer se tiñe de rosa con pulse (#game-screen.lucifer-active .timer-big).
+  - EL DINERO YA NO APARECE EN LA BARRA DE PARTIDA (se quitó el stat-item con #wallet; updateWalletDisplay lo
+    tolera con el guard if (wEl)). El dinero solo vive en el HUD superior.
+  - .stats-bar queda con turulos + etiqueta Lucifer.
+- HUD MONEY → TIENDA: #hud-money-btn (el indicador 💰 superior derecho) es clicable SOLO si statsData.lopa.
+  shopUnlocked (clase .hud-money-shop = cursor pointer + borde/hover). Si no está desbloqueada NO hace nada.
+  renderShopButton() alterna la clase; click handler → openShopModal().
+
+--------------------------------------------------------------------------------
+MODALES / UI EXISTENTES
+--------------------------------------------------------------------------------
+- Usuario (entrada de nombre, generar lopero, contraseña con hash SHA-256, logout), Info (estadísticas + tabla por dificultad/tamaño),
+  Contraseña, Tienda (Dragon Narco), Visor de amuletos, NOTAS E IDEAS (ver abajo), Toast (notificación), ranking lateral fijo a la derecha.
+- Botones de usuario: nombre, contraseña, info, logout, lore (pendiente de contenido), notas e ideas.
+- Audio: música normal/Lucifer, mute + slider de volumen flotante (guardado en localStorage 'buscalopas_volume').
+
+-------------------------------------------------------------------------------
+NOTIFICACIONES / BALANCE (SESIÓN 19/08 — NUEVO)
+-------------------------------------------------------------------------------
+- TOAST REDISEÑADO (globo): #toast ahora tiene icono circular (emoji extraído automáticamente del
+  título/mensaje vía pullEmoji()), cuerpo a la izquierda, botón de cerrar (✕) y barra de progreso inferior
+  (animación toastProgress = duración del toast). Animación de entrada toastIn (resorte). Variante data-type="spiz"
+  → borde/glow/barra CIAN (spiz = sustancia). showToast(msg, type) y showNotification(title, msg, detail, type)
+  ahora pasan por renderToast(); los emojis se mueven del texto al icono.
+  DESDE 19/08: el toast está a la IZQUIERDA (left:20px) en vez de arriba-centro, y entra deslizando desde la
+  izquierda; es breve (2.5s en showToast) y no interrumpe la partida.
+- DESBLOQUEOS EN PARTIDA SIN MODAL: checkAmuletUnlocks() ya NO abre el modal centrado (#amulet-modal) durante la
+  partida (interrumpía). Ahora muestra un toast breve a la izquierda ("🔮 LopAmuleto desbloqueado: X" o
+  "😈 Maldición desbloqueada: X"). El detalle completo se ve en el resumen de partida (botones de LopAmuletos
+  conseguidos) o en el visor del HUD. El regalo del dragón (giftDragonRelic) SÍ sigue abriendo su modal (es la tienda).
+- POPUP DEL SPIZ EN PARTIDA: .spiz-popup.spiz-cyan (borde izquierdo cian + glow) cuando obtienes el Spiz
+  (showSpizPopup). Los mensajes de Lucifer lo limpian (showLuciferMessage/stopLuciferMessages).
+- DESBLOQUEO DE TIENDA (big deal): cuando checkShopUnlock() desbloquea la tienda, ahora muestra una notificación
+  PERSISTENTE (toast con botón, 60s) "🐉 ¡TIENDA DESBLOQUEADA!" explicando al Dragon Narco de Ojos Azules y un botón
+  "🛒 ¡A la tienda!" que abre el modal. El toast soporta action {label, fn} (showNotification(..., action)).
+- RELIQUIA DEL DRAGON USABLE: la Carta del Dragon Narco ya no es decorativa. statsData.lopa.relicGames = partidas
+  desde el último uso (máx RELIC_DRAGON_EVERY=10). En initGame se suma 1 (si está owned). Cuando relicGames>=10, en
+  partida aparece un botón fijo a la izquierda con el sprite del dragón (#relic-dragon-btn, pulso animado) que al
+  pulsarlo da RELIC_DRAGON_BONUS=+50€ y resetea relicGames a 0 (si no se usa, queda disponible la siguiente partida).
+  El amuleto del dragón en el HUD muestra el contador "X/10" (o ✓) vía amuletProgress('dragon'); tooltip/visor
+  muestran "Se recarga en N partida(s)" y usos totales (lopa.uses.dragon). useRelicDragon() / dragonRelicReady() /
+  updateRelicDragonButton(). OJO: +50€ es un valor pendiente de tunear.
+- PANTALLA DE RESULTADO "SPIZ GUARDADO": #result-modal.result-spiz → tarjeta con borde/glow cian y título cian.
+  openResultScreen({..., spiz}) activa la clase.
+- RESULTADO MÁS ABAJO + INFO EXTRA: la tarjeta del resultado está ahora al CENTRO de la partida (padding-top 30vh,
+  igual que el círculo de reabrir). openResultScreen acepta `extra` y lo muestra en #result-extra: en victoria
+  "⏱️ Te sobraron Xs de Ys · Tamaño · Dificultad"; en BOOM "Quedaban Xs"; en tiempo agotado avisa de que el Spiz
+  habría dado más aire.
+- PENDIENTE: SONIDO BREVE en las notificaciones/desbloqueos (ahora son visuales; falta un "sonidito" tipo SFX).
+- BALANCE-CHECK (npm run balance): simula ganancia por victoria (25/50/75% de tiempo) en las 3 dificultades y
+  tamaños, calcula victorias necesarias para cada objeto de la tienda, compara progresión de dificultades y
+  el bono de guardar Spiz. REBALANCEADO 19/08: el bono de guardar el Spiz ahora escala con la dificultad
+  (spizSavedBonus(): Fácil 20€ / Media 60€ / Difícil 120€) para no trivializar Fácil (antes 50€ fijos = x5.6 el
+  tiempo base). El balance NO lanza alertas ahora.
+
+-------------------------------------------------------------------------------
+AMIGOS / CHAT / RESULTADO PERSISTENTE (SESIÓN 19/08 — NUEVO)
+-------------------------------------------------------------------------------
+- RESULTADO FINAL FLOTANTE (19/08, rediseñado): #result-modal es .modal-float → tarjeta (440px) flotando al
+  CENTRO de la partida (padding-top 30vh, por DEBAJO de Reiniciar/Menú que quedan visibles y usables), con sombra
+  flotante potente y fondo transparente (pointer-events:none en el modal, auto solo en la tarjeta): NO oscurece ni
+  tapa el tablero. CERRAR: botón ✕ arriba-IZQUIERDA de la tarjeta (#result-close-x) → la oculta y aparece un
+  CÍRCULO #result-reopen-btn (💰) para volver a abrirla. Se quitaron los botones "Ver tablero" y "Nueva lopa".
+  Reiniciar / Menú Principal (ahora MÁS GRANDES y vistosos, sobrio morado/rosa) limpian la tarjeta vía clearLastResult();
+  lastResult guarda el desglose (title/subtitle/breakdown/extra/spiz/amuletIds). OJO: #amulet-modal (z-index 2500)
+  sigue por encima para los botones de LopAmuletos conseguidos.
+- AMIGOS CON SOLICITUDES (19/08, ampliado): item "🤝 Amigos" en el desplegable. Modal con 4 pestañas:
+  Lista (💬 chat / ✕ quitar), Solicitudes (entrantes con ✅/✕ y enviadas con ↩ cancelar), Agregar y Buscar.
+  AGREGAR EXIGE QUE EL USUARIO EXISTA: si no existe, avisa con toast "No existe ningún lopero llamado X"
+  y NO envía nada (también en Buscar: "No existe ningún lopero con X" si no hay resultados). addFriend() =
+  enviar SOLICITUD (no suma directa); si la otra persona ya te invitó, se acepta su solicitud.
+  state: myFriends / myIncoming / myOutgoing. Server: friends.json → { usuario: { friends:[], incoming:[] } }
+  (outgoing se calcula escaneando incoming de los demás). Acciones POST /api/friends: request (valida existencia,
+  404 si no existe), accept (mutuo), decline, cancel, remove. /api/user?name= comprueba existencia.
+  ⚠️ BUG ARREGLADO 19/08 (2ª sesión): con Supabase en config.js, los usuarios viven SOLO en Supabase y el
+  server.js local no los conocía → /api/friends request devolvía 404 "Ese lopero no existe" y la solicitud
+  NUNCA llegaba (el cliente la marcaba como enviada igualmente = solicitudes recibidas invisibles). FIX:
+  1) server.js YA NO exige userExistsInDB en action 'request' (el cliente YA valida la existencia vía
+  userExists(), que consulta Supabase + /api/user). 2) postFriendAction() devuelve si el POST fue ok y
+  addFriend()/accept/decline/cancel/remove REVIERTEN el estado local y avisan "⚠️ No se pudo..." si el
+  servidor no confirmó (antes daba falso éxito "Solicitud enviada").
+  - DESPLEGABLE 📥 (#requests-dropdown) ampliado: ahora muestra TAMBIÉN las enviadas (📤 con ↩ cancelar),
+    no solo las recibidas. El título pasó a "📥 Solicitudes de amistad".
+  - SOLICITUDES/INFO/CHAT SOLO PARA REGISTRADOS CON CONTRASEÑA (19/08, 2ª sesión): si el usuario NO tiene
+    contraseña (isLoggedIn() false) → no puede agregar amigos (addFriend lo bloquea con toast "🔒 Regístrate
+    con contraseña..."), no ve su propia info (openInfoModal bloqueado), los botones flotantes de chat/
+    solicitudes quedan OCULTOS (renderChatOpenButton usa isLoggedIn()), y desde el ranking el modal del
+    jugador muestra el botón deshabilitado "🔒 Regístrate con contraseña para agregar". updateDropdown() ahora
+    llama a renderChatOpenButton() (para que aparezcan al crear la contraseña) y logout() limpia amigos.
+- NOTIFICACIÓN DE SOLICITUDES: DOS botones flotantes abajo-izquierda. Arriba #requests-open-btn "📥 Solicitudes"
+  (con badge rojo del nº) → abre un DESPLEGABLE (#requests-dropdown) con las solicitudes RECIBIDAS (✅/✕) y las
+  ENVIADAS (↩ cancelar) para contestar ahí mismo. Debajo #chat-open-btn "💬 Chat" (renombrado; antes "Amigos") con
+  su badge. El panel de chat
+  también muestra la franja #chat-requests "🔔 N solicitudes" con ✅/✕. Polling de amigos cada 10s (startFriendsPolling)
+  para avisar con el chat cerrado (toast "🔔 ¡Solicitud de amistad!" cuando aumenta el nº). El perfil del jugador
+  muestra estado (amigo / pendiente / te ha invitado) y permite aceptar. VERIFICADO: el receptor SÍ ve las recibidas
+  (reproducción real Ana→Bob: Bob recibe "Ana quiere ser tu amigo" en su pestaña Solicitudes).
+- RANKING CLICABLE: las filas .lb-row del ranking abren el perfil (#player-modal) con total/partidas/victorias
+  (via /api/player) y botón según estado (agregar / aceptar solicitud / pendiente / ya amigo).
+- CHAT (abajo a la izquierda): botón flotante "💬 Chat" (#chat-open-btn) abre el panel #chat-panel con la lista
+  de amigos (conversaciones) y los mensajes. Envío por Enter o ➤. Persistencia en server.js (chat.json, clave
+  "a|b" ordenada, máx 200 msgs) con espejo localStorage ('buscalopas_chat_<a>|<b>'). Polling cada 3s mientras el
+  panel está abierto. Se puede abrir una conversación desde la lista de amigos del modal.
+- Nota: los amigos/chat usan Supabase en producción (Netlify) o el server.js local si se levanta con npm start
+  (dev/tests); el fallback último es localStorage del navegador.
+
+--------------------------------------------------------------------------------
+TESTS AUTOMÁTICOS — test-lopa.js (NUEVO)
+--------------------------------------------------------------------------------
+- Suite Playwright que arranca su propio server (puerto 3977 si no se pasa BASE_URL) y lanza Chromium.
+  Aísla la red: aborta CDN de supabase y dominio supabase.co (fuerza modo local) e intercepta /api/* con datos falsos
+  (leaderboard con el jugador de test en el puesto 7, stats en localStorage vía addInitScript).
+- Seed del test: jugador 'LopataTest' con todos los amuletos/tableros comprados, shopUnlocked, wallet 5000,
+  charges {milagro:1, ultimobaile:1, vidente:1}, correctTurulos 49, order de 11 amuletos.
+- 42 checks: orden del HUD por adquisición, sin animación de parpadeo, nombre sin prefijo, tablero 10x10/15x15,
+  destapado, turulos, y los 8 LOPAMULETOS de efecto (Vidente, Imán, Subidón 1 vez + sin bucle, Milagro, Último Baile,
+  Gafe, Mala Pipa, Rastreador), victoria por turulos, tienda (dragón a la derecha, stock de hoy, regalo de la reliquia,
+  compra descuenta cartera), ranking debajo del top 5, título→menú, botones, música a volumen 0, y NUEVOS:
+  pantalla de resultado con desglose tras victoria, LopAmuletos conseguidos como botones que desaparecen al verlos,
+  dinero del HUD→tienda, dinero fuera de la barra + reloj independiente, y ESTA SESIÓN: Vidente gasta 1 carga y
+  sin carga no muestra el Spiz, quitar turulo de mina descuenta contadores, regresión de turulos (se cobran SOLO
+  los de la partida, no los de por vida), resultado flota sin bloquear (X para cerrar + círculo para reabrir),
+  HUD respeta orden de obtención (incluidas mejoras compradas), reliquia del dragón (botón a las 10 partidas, +50€,
+  sin botón antes), tienda desbloqueada (notificación con botón), amigos (NO agrega inexistente, envía solicitud,
+  acepta entrante), botón Solicitudes sobre el chat (desplegable con las recibidas), chat (badge + contestar + conversar),
+  y SEGUNDA SESIÓN 19/08: desplegable de solicitudes muestra entrantes Y enviadas (con ↩ cancelar) y bloqueo sin
+  contraseña (chat/amigos/info ocultos, addFriend rechazado, botón del ranking deshabilitado).
+- Ejecución (desde dev/): npm run test-lopa  (HEADED=1 para ver el navegador).
+- Chromium: las dependencias del sistema YA ESTÁN instaladas (se hizo `npx playwright install-deps chromium` con sudo
+  el 19/08); ya NO hace falta el LD_LIBRARY_PATH de /tmp/opencode/chromelibs (workaround eliminado).
+
+--------------------------------------------------------------------------------
+NOTAS / ZONA DE COMENTARIOS
+--------------------------------------------------------------------------------
+- Item "📝 Notas e ideas" en el desplegable del usuario. Modal con textarea (maxlength 8000).
+- Persistencia: servidor → notes.json (endpoint /api/notes GET/POST). Fallback a localStorage 'buscalopas_notes' sin servidor.
+
+--------------------------------------------------------------------------------
+IDEAS FUTURAS DEL USUARIO (apuntadas en notas / conversación)
+--------------------------------------------------------------------------------
+- MULTIJUGADOR.
+- Reproductor de música con lista de canciones desplegable.
+- Chats y creación de grupos/equipos/parties/lobbies; la playlist sería COMÚN para ese grupo.
+- En general: intentar NO leer todo el código para optimizar consumo de tokens (usar grep/lecturas puntuales).
+
+--------------------------------------------------------------------------------
+DECISIONES / CONVENCIONES A RESPETAR
+--------------------------------------------------------------------------------
+- NO añadir comentarios al código salvo que se pida. Código en español, nombres en inglés mezclado con español.
+- Función global amuletImgFallback(el) usada en onerror de los <img> de amuletos para caer al emoji si falta el sprite.
+- Textos del juego en español, tono humorístico/chabacano ("Farlopín", "LopAmuleto", "turulos", "lopera").
+- El desbloqueo de amuletos negativos es automático y PERMANENTE.
+- Verificación: `node --check game.js` (raíz) y `node --check server.js`, `node --check test-lopa.js`,
+  `node --check balance-check.js` (en dev/) tras cada cambio. Probar API con curl. Tras tocar economía/dificultad,
+  correr `cd dev && npm run balance`.
+- Tras tocar lógica/UI del juego, ejecutar `cd dev && npm run test-lopa`.
+- El usuario NO ha pasado aún los sprites de amuletos → en img/amulets/ faltan los PNG (si no están, se muestra el emoji).
+  La reliquia dragon.jpg SÍ existe en img/amulets/.
+
+--------------------------------------------------------------------------------
+INSTRUCCIONES PARA PRODUCCIÓN (19/08, 3ª sesión: amigos/chat/notas en Supabase)
+--------------------------------------------------------------------------------
+El sistema amigos/chat/notas ya NO necesita servidor extra: con Netlify + Supabase basta.
+Pasos que hay que hacer UNA vez:
+
+1. SUPABASE (Dashboard → SQL Editor → New query → Run):
+   - Ejecutar el bloque nuevo de dev/supabase.sql (la parte de friendships, friend_requests,
+     chat_messages y notes, con sus policies). Es idempotente.
+   - Verificar en Table Editor que aparecen las 4 tablas nuevas.
+2. NETLIFY (redeploy):
+   - Subir game.js (y config.js/index.html si cambian) al site de Netlify.
+   - Con que game.js nuevo esté publicado basta para que amigos/chat/notas usen Supabase.
+3. PROBAR en producción:
+   - Con 2 cuentas (2 navegadores o incógnito) → usuario A busca a B, envía solicitud.
+   - Usuario B → botón "📥 Solicitudes" → ✅ aceptar → aparecen como amigos y pueden chatear.
+   - Notas: se guardan por usuario en Supabase (antes eran globales en el server local).
+
+OJO / CASOS:
+- Si el buscador dice "No existe ningún lopero con X": ese usuario aún no está en la tabla
+  scores de Supabase (hay que haber jugado una partida o registrado contraseña). Eso es lo normal.
+- Si sale de nuevo "No se pudo enviar la solicitud (¿hay servidor?)": las tablas nuevas no se
+  han creado o el redeploy no se ha hecho → revisar paso 1 y 2.
+- server.js local sigue existiendo solo para desarrollo/tests locales (npm start).
+
+--------------------------------------------------------------------------------
+SESIÓN 19/08 (4ª): CHAT ESTILO WHATSAPP + BOTÓN AMIGOS + MÓVIL RESPONSIVE
+--------------------------------------------------------------------------------
+CHAT (game.js + index.html + style.css):
+- El botón "💬 Chat" ahora ABRE/CERRA el panel con el mismo clic (toggleChatPanel).
+  Antes solo abría y no se podía cerrar con el botón.
+- El panel tiene 2 vistas: LISTA DE CONVERSACIONES (apiladas como WhatsApp: nombre +
+  badge con mensajes NO leídos) y CONVERSACIÓN (mensajes + input + botón "‹" para volver).
+- No leídos: se guarda por amigo la última marca de lectura (localStorage 'buscalopas_chat_read').
+  computeUnread() cuenta mensajes del otro con ts > marca. Al abrir una conversación se marca
+  todo leído; el polling (3s) refresca conversación o lista según la vista.
+- Botón "‹" (#chat-back-btn) en la cabecera → goChatList().
+- .chat-friends (id sigue igual, ahora clase .chat-convs) = lista vertical; .chat-friend =
+  fila apilada con .chat-friend-name + .chat-friend-unread.
+AMIGOS (index.html):
+- El botón flotante "📥 Solicitudes" ahora se llama "🤝 Amigos" (mismo id #requests-open-btn,
+  el badge sigue). El desplegable añade una fila "Enviar solicitud..." (#requests-add-input +
+  #requests-add-btn) que llama a addFriend().
+Z-INDEX: .floating-btn sube a 1700 (por encima del chat-panel 1500 y del requests-dropdown
+1600) para que Amigos/Chat siempre se puedan abrir/cerrar con el mismo botón.
+MÓVIL RESPONSIVE (style.css, @media max-width:768px al final del archivo):
+- Tablero: el tamaño de celda lo calcula JS (boardCellSize()/applyBoardCellSize()) con
+  var(--cell-size) (mín 26px, máx 52px) para que 10x10/15x15 quepan; en tableros grandes
+  (20x20) el .board-container hace scroll horizontal (overflow-x:auto).
+- Los popups del Spiz bajan debajo del tablero (position static) en móvil: NO se superponen.
+- Ranking lateral oculto en móvil (no tapa el tablero).
+- HUD compacto, menú/modal/tienda apilados a ancho completo, chat a casi toda la pantalla,
+  toast ancho completo, botones flotantes/volumen/reliquia más pequeños.
+- window resize → re-aplica tamaño de celda y re-renderiza el tablero.
+VERIFICADO: 42 tests OK + comprobaciones en viewport 390x844 (tablero 10x10 cabe sin
+solaparse; tienda apila columnas; 20x20 hace scroll horizontal).
+
+--------------------------------------------------------------------------------
+SESIÓN 19/08 (5ª): ACCESO MÓVIL + SOLAPES + HUD EN TIENDA + STATS ENTRE DISPOSITIVOS
+--------------------------------------------------------------------------------
+ACCESO DESDE EL MÓVIL:
+- server.js escucha en todas las interfaces (server.listen(PORT) sin host). Con el
+  móvil en la MISMA red Wi-Fi se abre: http://<IP-del-PC>:3000/ (IP que imprime
+  jugar.sh: "hostname -I" → primera IP).
+PROBAR EN LOCAL: jugar.sh (EN dev/, `bash dev/jugar.sh` o doble clic) levanta el
+  server y abre el navegador.
+  IMPORTANTE: NO abrir index.html a doble clic (file://) → CORS bloquea fetch de
+  nombres.txt (ya no existe) y otras peticiones; usar un servidor (jugar.sh / npm start).
+SOLAPE CHAT / AMIGOS:
+- body.chat-open (se añade al abrir el chat): .floating-requests y .requests-dropdown
+  suben por encima del panel (desktop bottom 540/590px; móvil calc(68vh+58/106px)).
+  Así el botón Amigos nunca pisa el chat. Se quita la clase al cerrar el chat.
+HUD VISIBLE EN LA TIENDA:
+- body.shop-open (al abrir la tienda): .hud-header sube a z-index 2100 (por encima de
+  modales 2000) y #shop-modal baja (align-items:flex-start + padding-top 84px, 118px
+  en móvil) para que la barra superior (dinero + LopAmuletos) se vea al comprar.
+  Se quita al cerrar la tienda.
+ESTADÍSTICAS / LOPAMULETOS ENTRE DISPOSITIVOS (bug gordo arreglado):
+- El problema: en Supabase la columna scores.stats era TEXT y el juego envía/espera un
+  OBJETO → PostgREST no la guardaba bien y loadStats no la leía (typeof string), así
+  que los amuletos/estadísticas NO se sincronizaban entre dispositivos (el dinero sí,
+  porque score/total son integer).
+- FIX 1 (dev/supabase.sql): migración que convierte scores.stats a JSONB (resetea a {}
+  las filas con datos corruptos antes del cast).
+- FIX 2 (game.js): loadStats() parsea stats si llega como string; y si el servidor no
+  tiene stats válidas (null, {} o sin .games) reenvía las locales (antes solo si era
+  null exacto, así que con {} no subía).
+- OJO: el usuario debe EJECUTAR de nuevo el bloque de dev/supabase.sql (o solo la
+  parte de la migración de stats) para que la columna pase a jsonb.
+VERIFICADO: 42 tests OK + comprobaciones desktop (1280px) y móvil (390px): Amigos no
+pisa el chat, el chat se cierra con el botón, HUD visible sobre la tienda y la tarjeta
+de la tienda no queda bajo la barra superior.
+
+--------------------------------------------------------------------------------
+SESIÓN 19/08 (6ª): TEXTOS CENTRALIZADOS (textos.js) + MODAL AMIGOS REDISEÑADO
+--------------------------------------------------------------------------------
+TEXTOS CENTRALIZADOS (textos.js, NUEVO archivo en la RAÍZ → se sube a Netlify):
+- window.TEXTOS con: heroes, lucifer, dificultades (label+option), modos, cantidades,
+  amuletos (12), tienda (dragonTalk + items), resultado (títulos).
+- game.js lo consume: buildAmulet() ensambla los amuletos (placeholders
+  {VIDENTE_RECHARGE_EVERY}, {RASTREADOR_EVERY} → números reales); SHOP_ITEMS se
+  construye desde TEXTOS.tienda.items + SHOP_LOGIC (kind/reqStats/daily/essential);
+  heroData/luciferMessages/DIFF_LABELS/updateDifficultyOptions/updateSizeOptions/
+  títulos de resultado usan TEXTOS.
+- Para refinar textos: editar SOLO textos.js (sin tocar lógica). Si no existe
+  window.TEXTOS, game.js cae a fallbacks (textos por defecto inline).
+- index.html carga: supabase CDN → config.js → textos.js → game.js.
+MODAL AMIGOS REDISEÑADO (pestaña Lista):
+- #friends-list ahora tiene 2 columnas: #friends-nav (lista de amigos a la izquierda,
+  filas apiladas) + #friends-detail (a la derecha, con el amigo seleccionado).
+- Clic en un amigo → se selecciona (resalte) y el detalle ofrece 3 botones:
+  💬 Chat (cierra el modal y abre el panel de chat con esa conversación),
+  ℹ️ Info (openPlayerModal), 🗑️ Eliminar (globo de confirmación).
+- GLOBO DE CONFIRMACIÓN (#confirm-bubble, nuevo en index.html + style.css): burbuja
+  fija abajo-centro (z-index 2300) con ✅ Sí / ✕ No. showConfirmBubble(msg, cb) /
+  hideConfirmBubble(). Al cerrar el modal o cambiar de pestaña se oculta.
+- En móvil la lista se apila: nav arriba, detalle debajo (botones en fila).
+VERIFICADO: 42 tests OK + flujo manual (lista → selección → burbuja Sí/No → chat
+abre la conversación y cierra el modal).
+
+--------------------------------------------------------------------------------
+SESIÓN 19/08 (7ª): NOMBRES EN TEXTOS + REGISTRO CON USUARIO/CONTRASEÑA +
+AMIGOS EN DESPLEGABLE + HUD SIEMPRE VISIBLE + BANNER DE REGISTRO
+--------------------------------------------------------------------------------
+NOMBRES EN TEXTOS.JS:
+- Los 100 nombres de nombres.txt ahora viven en TEXTOS.nombres (ya NO hace falta
+  subir nombres.txt a Netlify). loadNames() usa TEXTOS primero y cae a fetch de
+  nombres.txt solo si no existe el array (compatibilidad local).
+REGISTRO / CREAR CUENTA (modal de contraseña rehecho):
+- El modal de contraseña (#pass-modal) ahora es "Crear cuenta": campo #pass-user
+  (usuario, prefilled con el actual y editable) + contraseña + repetir.
+- confirmPassword() valida disponibilidad si cambias de usuario, y muestra el GLOBO
+  DE CONFIRMACIÓN (texto de TEXTOS.ui.confirmarCuenta) antes de crear.
+- doCreatePassword(): crea la cuenta (pushPass + stats + wallet/total) y si cambias
+  de usuario transfiere TODO: notas, amistades, solicitudes y chat (transferUserData
+  en Supabase) y trae wallet/total/stats del usuario anterior.
+- Botón "🆕 Registrarse" en el formulario inicial (#user-register-btn): comprueba
+  que el nombre esté libre (fetchPlayerData) y abre el modal de cuenta con ese
+  nombre prefilled.
+AMIGOS EN EL DESPLEGABLE FLOTANTE:
+- El desplegable "🤝 Amigos" (#requests-dropdown) muestra ahora una sección
+  "👥 Amigos" (filas clicables .dd-friend que abren el chat) además de las
+  solicitudes entrantes/enviadas y el input de enviar solicitud.
+HUD SIEMPRE VISIBLE:
+- .hud-header z-index 1000 → 2600 (siempre por encima de modales 2000 y del
+  banner 2550; los modales ahora son top-aligned con padding-top 140px / 150px
+  móvil para que nunca queden bajo la barra). #result-modal.modal-float mantiene
+  su posición flotante (30vh).
+- Se eliminaron las reglas body.shop-open (ya no hacen falta).
+BANNER DE REGISTRO (#register-banner):
+- Fijo justo debajo del HUD a la derecha (top 80px / 66px móvil, z-index 2550),
+  con ✕ para cerrarlo (localStorage 'buscalopas_regbanner_hide'). Se muestra
+  cuando NO hay sesión con contraseña (renderRegisterBanner en updateDropdown e
+  init). Texto en TEXTOS.ui.registrate.
+VERIFICADO: 42 tests OK + flujo manual (10 checks: banner, generador de nombres
+con nombres.txt bloqueado, Registrarse→modal de cuenta, burbuja de confirmación,
+sesión creada, amigos en desplegable, z-index HUD, banner reaparece al salir,
+cambio de usuario con transferencia).
+
+--------------------------------------------------------------------------------
+SESIÓN 19/08 (8ª): TEXTOS DE UI EN TEXTOS.JS + CONTADOR DE CARGAS DESDE LA
+OBTENCIÓN DEL LOPAMULETO
+--------------------------------------------------------------------------------
+TEXTOS DE REGISTRO EN TEXTOS.JS:
+- Ampliado TEXTOS.ui con los textos hardcodeados de crear cuenta/registro que
+  estaban en game.js: contrasenaDe ({NAME}), contrasenaIncorrecta, eligeNombre,
+  escribeContrasena, minimo4, noCoinciden, yaTieneContrasena, nombreEnUso,
+  sinConexion, cuentaCreada y bloqueoRegistro { info, agregar, amigos,
+  agregarRanking, chat } (los toasts "🔒 Regístrate con contraseña para...").
+- game.js usa UI = TX.ui || {} y cae a los mismos textos por defecto si no
+  existe textos.js. Se tocaron: showNamePasswordField, confirmUser, confirmPassword,
+  doCreatePassword, renderRegisterBanner, openInfoModal, addFriend, openFriendsModal,
+  perfil del ranking y toggleChatPanel.
+- Decisión: NO mover cada string del juego a textos.js (no aporta); solo se
+  centralizan los textos de UI de cuenta/registro, que son los que se quieren
+  afinar. Los textos del resto (toasts, tienda, chat...) siguen en su lugar.
+CONTADOR DE RECARGA DESDE LA OBTENCIÓN:
+- Antes el contador de recarga (Vidente "X/5 victorias", Milagro/Último Baile y
+  Rastreador "X/50") se calculaba sobre las estadísticas DE POR VIDA: si
+  desbloqueabas el Vidente con 7 victorias ya tenías 2/5 de progreso y recargabas
+  a los 3. Ahora el contador EMPIEZA EN 0 al obtener el lopamuleto.
+- statsData.lopa.acquired = { vidente: wins, milagro: turulos, ultimobaile:
+  turulos, rastreador: turulos } guarda el valor en el momento de la obtención.
+  amuletBaseline(id) lo lee (0 si no existe, para partidas viejas). setAmuletAcquired(id)
+  lo escribe, marca el amuleto ACTIVO y se llama en checkAmuletUnlocks (vidente/
+  rastreador) y en buyShopItem (milagro/ultimobaile). Todos los de carga siguen
+  regalando 1 carga al obtenerlos.
+- amuletProgress, settleGameCounters y handleCorrectFlagReveal restan la base:
+  recarga = estadísticas desde la obtención, no de por vida. Vidente recarga +1
+  cada VIDENTE_RECHARGE_EVERY (5) victorias desde que se obtuvo.
+VERIFICADO: 42 tests OK.
+
+--------------------------------------------------------------------------------
+SESIÓN 19/08 (9ª): "NO CARGA NUNCA DESDE EL MÓVIL" — ARRANQUE OFFLINE
+--------------------------------------------------------------------------------
+SÍNTOMA: desde el móvil (misma Wi-Fi, vía jugar.sh → http://IP-LAN:3000) la
+página se quedaba "cargando para siempre".
+CAUSAS (dos):
+1) index.html dependía de recursos EXTERNOS que bloquean:
+   - <script src="https://cdn.jsdelivr.net/.../@supabase/supabase-js@2"> es
+     parser-blocking: si no se descarga, config.js/textos.js/game.js NUNCA se
+     ejecutan y la pantalla queda en blanco. Ese era el "no termina de cargar".
+   - La fuente de Google (CSS render-blocking) retrasaba el pintado.
+2) Al servir supabase en local, supabaseClient SIEMPRE existía y cada query a
+   supabase.co reintentaba (postgrest-js: hasta 3 reintentos con backoff ≈7s, y
+   más en redes malas) antes de caer al servidor local. El HUD (LopAmuletos)
+   esperaba a loadPlayerFromServer para pintarse.
+SOLUCIONES:
+- Descargado @supabase/supabase-js@2 (212KB, UMD) a vendor/supabase.min.js y
+  index.html ahora carga <script src="vendor/supabase.min.js">: CERO dependencia
+  de CDN.
+- Fuente de Google no bloqueante: <link ... media="print" onload="this.media='all'">
+  (si no hay internet, el juego pinta con fuentes de respaldo).
+- Sondeo de supabase al arrancar: initSupabase() hace un HEAD a SUPABASE_URL con
+  AbortController (timeout 2s, sin reintentos). Solo si responde se crea
+  supabaseClient; si no, queda null y TODO usa el servidor local al instante.
+  El arranque pinta el menú/HUD desde localStorage y después, si hay supabase,
+  carga amigos/ranking/servidor (sin bloquear el pintado).
+- supabaseFetch envuelve el fetch del cliente con timeout de 4s por si supabase
+  cae a mitad de sesión (devuelve Response 503 → error controlado, cae a local).
+- dev/server.js: server.listen(PORT, '0.0.0.0') explícito.
+- jugar.sh: detecta la IP de la interfaz de red real (eth/wlan), no la de
+  docker/VPN, para imprimir la URL del móvil.
+VERIFICADO: 42 tests OK + simulación móvil sin internet (supabase+fuentes+CDN
+abortados): LopAmuletos visibles en 157ms. En test, el HUD pinta al instante
+(antes tardaba 5-7s esperando los reintentos de supabase).
+
+--------------------------------------------------------------------------------
+SESIÓN 19/08 (10ª): USUARIO DEIDAD "LUCIFER" PARA PRUEBAS
+--------------------------------------------------------------------------------
+CUENTA: Lucifer / contraseña "lucifer" (hash sha256 en dev/scores.json).
+- Entra por el flujo normal (modal de usuario → contraseña). NO es un usuario
+  normal: en la capa de supabase se comporta como un jugador local puro.
+ARQUITECTURA (coste ~0 para los demás):
+- CLIENTE (game.js):
+  - isDeity(name) (case-insensitive, compara con 'Lucifer') + DEITY_WALLET=1e6.
+  - applyDeityBoost() en loadStats: todos los LopAmuletos owned+active, 3 cargas
+    (milagro/ultimobaile/vidente), niveles spiz/dinero a 5, tienda abierta.
+    setAmuletAcquired() para que los contadores de recarga partan de 0.
+  - Cartera 1.000.000 en loadPlayerFromServer.
+  - "Oculto": el cliente normal NO tiene lógica de Lucifer salvo:
+    * loadRanking filtra isDeity (cubre la ruta supabase del ranking).
+    * userExists devuelve false para Lucifer (no se puede agregar como amigo).
+    * Supabase se DESACTIVA por completo para la sesión de Lucifer: se guarda
+      supabaseFactory() y refreshClientForUser() (llamado desde setUsername,
+      punto único) hace supabaseClient = null cuando el usuario activo es la
+      deidad. Así no se crea en supabase sin pass, su login usa el servidor
+      local y no genera tráfico. initSupabase respeta a la deidad ya logueada.
+  - rememberPassHash/getPassHash en sessionStorage (se guarda al iniciar sesión
+    o crear cuenta; se limpia en logout). Se usa para autorizar el broadcast.
+- SERVIDOR (dev/server.js), ocultamiento local-first (los demás ni ven a Lucifer):
+  - HIDDEN_USER = 'Lucifer' filtrado en /api/leaderboard, /api/players,
+    /api/search y /api/user (exists:false). Coste: una comparación por fila.
+BROADCAST ("mensajes a todos"):
+- /api/chat/broadcast GET/POST. POST solo si user==='Lucifer' Y pass hash
+  coincide con el de scores.json (403 si no). Guarda en chat.json bajo clave
+  'broadcast' (máx 200).
+- Chat UI: en la lista de amigos hay un botón "📢 Avisos de Lucifer" (BROADCAST_KEY
+  '__avisos_lucifer__') con badge de no leídos (broadcastUnread + getChatReadTs).
+  loadChat lo enruta a loadBroadcast(). En la conversación, SOLO Lucifer ve el
+  input (renderChatView oculta .chat-input-row para los demás → solo lectura).
+  sendChatMessage → sendBroadcastMessage (local + POST con pass hash).
+PROTECCIÓN DEL NOMBRE: al tener pass en scores.json, fetchPlayerData('Lucifer')
+devuelve pass → registerUser/confirmUser exigen la contraseña → nadie puede
+registrarse como Lucifer.
+TESTS: 2 nuevos en dev/test-lopa.js (login+amuletos+broadcast+403; oculto del
+ranking y búsquedas). Total 44 tests OK. Ojo: los tests de broadcast escriben en
+dev/chat.json (canal de Lucifer, tope 200 mensajes), es el canal de pruebas.
+
+SESIÓN 19/08 (11ª): LUCIFER LISTO PARA DESPLEGUE (SIN localhost)
+--------------------------------------------------------------------------------
+Contexto: cuando el juego esté subido NO habrá dev/server.js; el backend será
+supabase. Antes Lucifer desactivaba supabase (correcto para local, rompía el
+despliegue). Ahora usa supabase como cualquier usuario y el ocultamiento es
+100% en el cliente:
+- refreshClientForUser()/initSupabase: YA NO desactivan supabase para Lucifer.
+- Login de la deidad: confirmUser y registerUser con guard → si no se encuentra
+  la cuenta con pass, SE RECHAZA (nunca auto-login ni creación del nombre).
+  Evita el robo del nombre en cualquier entorno (local o supabase).
+- searchUsers (ruta supabase) y loadRanking filtran isDeity → no aparece en
+  sugerencias de amigos ni en el ranking desplegado.
+- Broadcast con dos rutas:
+  * supabase: chat_messages con user_to='__avisos_lucifer__' (BROADCAST_KEY).
+    loadBroadcast lee todas las de ese marker; sendBroadcastMessage inserta ahí.
+    Mismo modelo que el chat normal (anon key), así que funciona desplegado.
+  * local (sin supabase): /api/chat/broadcast con verificación de pass hash.
+- NOTA: desplegado, el envío de broadcast se autoriza como el chat normal (sin
+  verificación de pass en supabase); es aceptable para una cuenta de pruebas.
+SETUP:
+- dev/setup-lucifer.js: crea/actualiza la fila 'Lucifer' en supabase (pass hash +
+  stats de deidad) usando la anon key de config.js (mismos permisos que el juego).
+  Uso: node dev/setup-lucifer.js (o LUCIFER_PASS=... para otra contraseña).
+  EJECUTADO el 19/08: fila verificada en supabase (pass 9b8e092a..., 12 amuletos,
+  3 cargas). Si cambias la contraseña, vuelve a lanzarlo.
+- El resto (amuletos/cartera al entrar) lo da el cliente (applyDeityBoost,
+  DEITY_WALLET=1e6), así que no requiere backend.
+CÓMO SE USA: entrar con usuario "Lucifer" y contraseña "lucifer"; oculto del
+ranking/búsqueda/amigos; en el chat, botón "📢 Avisos de Lucifer" para broadcast.
+VERIFICADO: 44 tests OK.
+
+SESIÓN 19/08 (12ª): BUGS DE LUCIFER + CHAT 1-A-1 + SERVERS CERRADOS
+--------------------------------------------------------------------------------
+BUG "NO ME DEJA INICIAR SESIÓN / SE BLOQUEA":
+- CAUSA: en confirmUser, si escribías tu MISMO nombre estando SIN sesión, el atajo
+  `name === currentName` cerraba el modal en silencio SIN pedir la contraseña.
+  Con Lucifer (cuenta con pass) te quedabas con el nombre puesto pero sin sesión
+  → amigos/chat bloqueados y re-entrar no hacía nada.
+- FIX: el atajo solo se usa si isLoggedIn(). Si no hay sesión, pasa por el flujo
+  normal (fetchPlayerData → campo de contraseña). Para usuarios SIN pass, el mismo
+  nombre sigue cerrando el modal (comportamiento anterior). VERIFICADO: re-login
+  en el estado "a medias" ahora pide contraseña y entra.
+CHAT 1-A-1 CON LUCIFER (él habla con cualquiera, nadie lo ve como amigo):
+- Lucifer (deidad): loadFriends añade a TODOS los usuarios a myFriends
+  (deityAddAllFriends con fetchUsedNames) → en su chat ve a todo el mundo y puede
+  hablar con cualquiera. A él sí le salen como amigos (visible solo para él).
+- Usuarios normales: renderChatFriends añade una entrada fija "😈 Lucifer"
+  (chat 1-a-1, con badge de no leídos) al principio de la lista de chat. La
+  conversación usa la infraestructura normal (chatLocalKey / /api/chat /
+  chat_messages). NO aparece en su lista de amigos (friends.json), ni en ranking
+  ni en búsquedas; solo tiene esa entrada de chat para escribirle/responderle.
+- chatTitleFor: "📢 Avisos de Lucifer" (broadcast) vs "😈 Lucifer" (1-a-1).
+RANKING "ROTO" (aclaración):
+- NO es un bug de datos: localmente el ranking usa el SERVIDOR LOCAL (scores.json
+  = fff + Lucifer oculto) porque supabase bloquea CORS desde localhost. Por eso se
+  ve 1 sola fila. Cuando esté desplegado (dominio permitido en CORS de supabase),
+  el ranking muestra los datos de supabase y Lucifer queda oculto (verificado con
+  simulación de CORS: 5 filas reales, Lucifer ausente).
+- Si quieres ver el ranking completo TAMBIÉN en local: añade en Supabase
+  (Authentication → URL Configuration → Allowed Origins) http://localhost:3000.
+- SUPABASE LLENO DE CUENTAS DE PRUEBA (LayTest, VCheck, MobTest, ShopTester,
+  MechTester, LoperoDePrueba, TestLopero, AnaReal, amego, BobReal, FlagsTester,
+  SpizTester, PruebaConexion, LuciferTester, xX_*...) → ensucian el ranking
+  desplegado. Ofrecido un script de limpieza (pendiente de confirmación).
+SERVERS: cerrados todos (3000 y 3999). Correr con ./jugar.sh manualmente.
+TESTS: 46 OK (2 nuevos: fix re-login y chat 😈 Lucifer).
+
+SESIÓN 19/08 (13ª): LOGIN/LOGOUT ARREGLADOS + LIMPIEZA DE BASE DE DATOS
+------------------------------------------------------------------------------
+BUGS DEL USUARIO (todo reproducido en local con Playwright):
+- "No puedo entrar como Lucifer tras cerrar sesión": al escribir "lucifer" en
+  MINÚSCULAS, fetchPlayerData('lucifer') no encontraba la fila (búsqueda
+  case-sensitive) y saltaba "La cuenta Lucifer no está disponible". Con
+  "Lucifer" exacto sí entraba → era la caja del nombre, no el logout.
+- Usuario sin contraseña "atrapado": al estar dentro con un usuario sin
+  contraseña, el botón "Cerrar sesión" estaba OCULTO (solo salía con isLoggedIn),
+  así que no se podía cambiar de cuenta (escribir otro usuario daba "Ese lopero
+  ya está en uso" y no se salía).
+FIXES (game.js + textos.js):
+- confirmUser() ahora NORMALIZA la deidad: si escribes "lucifer"/"LuCiFeR"
+  usa SIEMPRE el nombre canónico 'Lucifer' para fetchPlayerData, hashPassword
+  y finishLogin. La contraseña se valida contra el hash real del servidor.
+- confirmPassword() (crear cuenta) BLOQUEA cualquier variante de la deidad
+  ("Ese nombre está reservado para la cuenta de pruebas") para que no se pueda
+  crear una cuenta 'lucifer' distinta con poderes de deidad.
+- updateDropdown(): "Cerrar sesión" ahora se muestra SIEMPRE que haya un usuario
+  (con o sin contraseña), no solo con sesión de contraseña.
+- logout() pide CONFIRMACIÓN (globo #confirm-bubble, texto UI.cerrarSesion
+  nuevo en textos.js) antes de salir. doLogout() limpia TODO: sesión, pass hash,
+  nombre, cartera local ('buscalopas_wallet'/'buscalopas_total' → 0 y borrados),
+  statsData, amigos/solicitudes, y abre el modal de usuario para entrar con otro.
+  Tras confirmar, se puede volver a entrar con cualquier otro usuario (con
+  contraseña si la tiene) incluido Lucifer.
+- No tocar el resto de flujos: crear un usuario con nombre ya ocupado sigue
+  bloqueado ("Ese lopero ya está en uso") y entrar a un usuario sin contraseña
+  ya existente también (protección para no robar cuentas sin pass); la forma
+  correcta de cambiar es cerrar sesión y volver a entrar.
+TESTS: 2 nuevos en dev/test-lopa.js (login "lucifer" minúsculas; logout visible
+sin contraseña + confirmación + limpieza + re-login). Total 48 OK.
+LIMPIEZA DE BASE DE DATOS (pedida por el usuario):
+- Conservar SOLO: amego, colego, ed, fff, lopo y Lucifer (Lucifer nunca se borra).
+- dev/scores.json (local) LIMPIADO: quedan fff, Lucifer y ed (se borraron
+  PruebaChat y hola).
+- Supabase: la clave ANÓNIMA no puede hacer DELETE (RLS lo bloquea en silencio),
+  así que NUEVO script dev/cleanup-db.js intenta borrar por API y, si quedan
+  filas, imprime el SQL exacto para pegar en Supabase → SQL Editor → Run:
+      DELETE FROM scores WHERE lower(name) IN ('PruebaConexion', 'MobTest', ...);
+  (23 filas de prueba pendientes de borrar: LayTest*, VCheck*, MobTest*,
+  AnaReal, BobReal, xX_*... ). Uso: node dev/cleanup-db.js.
+   Las tablas friends/chat/notes YA solo contienen datos de usuarios conservados.
+
+SESIÓN 19/08 (14ª): FORMULARIO CUENTA + CARTERA NUEVOS + REVELADO AL PERDER + LOGIN
+-------------------------------------------------------------------------------
+- Formulario "Crear cuenta": el campo de nombre (#pass-user) no estaba en la lista
+  de inputs estilizados (style.css "INPUTS DE CONTRASEÑA"); se añadió a esa lista
+  (#pass-user y :focus) para que quede igual de grande/bonito que el resto.
+- CARTERA DE USUARIO NUEVO SIEMPRE 0: antes loadPlayerFromServer, si el servidor
+  no tenía datos del nombre, CONSERVABA la cartera de localStorage (heredada de
+  sesiones previas, p.ej. los 1.000.000 de Lucifer). Ahora, si el nombre no existe
+  y NO tiene stats locales, se resetea wallet/totalEarned a 0 y se borran
+  'buscalopas_wallet'/'buscalopas_total'. Si tiene stats locales (progreso offline)
+  se conserva y se re-sincroniza como antes.
+- REVELADO AL PERDER: revealAllMines() → revealAllCells(): al perder (BOOM o
+  tiempo agotado) se revelan TODAS las casillas, incluida la del Spiz aunque no se
+  haya activado. Se llama desde startTimer (tiempo) y handleReveal (mina).
+- LOGIN TRAS CERRAR SESIÓN: confirmUser() YA NO bloquea "Ese lopero ya está en
+  uso" al teclear un nombre existente sin contraseña; ahora entra directamente
+  (setUsername + onUserReady, como un usuario temporal) y carga su cartera/stats
+  del servidor. Así tras el logout se puede iniciar sesión con cualquier nombre
+  en uso (los que tienen contraseña siguen pidiéndola). El botón "🆕 Registrarse"
+  sigue bloqueando si el nombre está ocupado. El botón "👤 Nombre de usuario" del
+  desplegable sigue visible SOLO para usuarios sin contraseña (ya era así).
+- VERIFICADO: 48 tests OK + comprobaciones manuales (cartera 0 en usuario nuevo,
+  revelado 100/100 con spiz, login a cuenta sin contraseña carga su cartera).
+- AUTOFILL/AUTOCORRECCIÓN DEL NAVEGADOR (molestaba y tapaba los botones del modal):
+  los inputs de contraseña (#name-pass-input, #pass-input, #pass-input2) pasan a
+  autocomplete="new-password" (evita que Chrome/Firefox sugieran credenciales
+  guardadas; "off" se ignoraba) y los de usuario (#user-input, #pass-user) a
+  autocomplete="off" + name="buscalopas_nick" (patrón ajeno a username/password).
+  La textarea de notas también lleva autocomplete="off".
+- HUD LIMPIO AL CERRAR SESIÓN: doLogout() ahora llama a renderHudAmulets() y
+  renderShopButton() tras resetear statsData, así el HUD de LopAmuletos, el botón
+  de tienda y la cartera quedan vacíos al llegar a la pantalla de login (antes se
+   veían los amuletos del usuario anterior). VERIFICADO: HUD con 5 amuletos antes,
+   0 tras logout.
+- BUG CRÍTICO DEPLOY "RANKING NO DISPONIBLE" (19/08, tras desplegar): el probe de
+  initSupabase() hacía fetch(SUPABASE_URL, {method:'HEAD'}) a la RAÍZ de supabase
+  (https://...supabase.co/), que responde 404 SIN cabecera Access-Control-Allow-Origin
+  → el navegador bloqueaba el fetch por CORS → supabaseClient quedaba null SIEMPRE
+  en el sitio desplegado → todo caía a /api/leaderboard (no existe en Netlify) →
+  "Servidor no disponible". El "Error de seguridad ... file:///" de Firefox era un
+  síntoma secundario, no la causa.
+  FIX: el probe ahora hace HEAD a /rest/v1/scores?select=name&limit=1 con la
+  cabecera apikey (el endpoint real de PostgREST SÍ responde ACAO, verificado con
+  Origin; la preflight OPTIONS permite el header apikey). VERIFICADO en navegador
+  headless: supabaseClient=true y el ranking carga datos reales de supabase.
+  ⚠️ Re-desplegar game.js en Netlify para aplicar el fix. El backend (tablas + RLS
+  + CORS) ya estaba bien: tabla scores con datos, policies anónimas OK y CORS abierto.
+  NO hace falta ningún server desde el PC; no hay instrucciones extra que poner
+  en Supabase (si acaso, añadir el dominio de Netlify en Authentication → URL
+  Configuration → Allowed Origins, pero por defecto CORS ya está abierto).
+
+SESIÓN 19/08 (15ª): NOTIFICACIONES EN TIEMPO REAL + SONIDO + LÍMITES DE CHAT
+-------------------------------------------------------------------------------
+TIEMPO REAL (badges de los botones flotantes "🤝 Amigos" y "💬 Chat"):
+- Los dos globitos de abajo-izquierda ahora son independientes: #requests-badge
+  = solicitudes entrantes (myIncoming), #chat-badge = mensajes SIN LEER totales
+  (suma computeUnread de amigos + Lucifer + broadcast, vía totalUnread()).
+- Dos mecanismos (game.js):
+  1) Supabase Realtime (si supabaseClient activo): startRealtime() suscribe
+     postgres_changes INSERT en chat_messages y friend_requests; al llegar un
+     mensaje se vuelca al espejo local, renderBadges() y suena playMessageSound().
+     IMPORTANTE: requiere ejecutar el bloque "TIEMPO REAL" de dev/supabase.sql
+     (añade chat_messages y friend_requests a la publicación supabase_realtime
+     + replica identity full). Sin él, los eventos NO llegan y el juego usa el
+     respaldo de polling (~10s).
+  2) Polling de respaldo: startFriendsPolling() (10s) ahora refresca loadFriends
+     y, si el realtime está "mudo" (no ha llegado ningún evento en 30s,
+     lastRealtimeEvent), hace refreshAllUnread() (loadChat de cada amigo +
+     Lucifer + broadcast) para actualizar los badges.
+- syncRealtime() se llama en onUserReady/doCreatePassword (arranca) y stopRealtime
+  en doLogout. El realtime del canal se fija por usuario (buscalopas-live-<nombre>).
+- SONIDO: playMessageSound() genera un "ding" de dos tonos con WebAudio (sin
+  archivo extra). Respeta mute y volumen. Suena al recibir mensaje y solicitud.
+LÍMITES / SEGURIDAD DEL CHAT:
+- Cliente (game.js): CHAT_MAX_LEN=500 y CHAT_MIN_INTERVAL_MS=1200 (throttle de
+  envío, 1 mensaje como mucho cada 1,2s; bloquea con toast "📵"). Aplica a
+  sendChatMessage y sendBroadcastMessage.
+- Servidor local (dev/server.js): chatRateLimited(user) devuelve 429 si envía
+  antes de 1,2s; texto cortado a 500; mensaje vacío 400. Ya había tope de 200
+  mensajes por conversación y escape HTML en el cliente.
+- NOTA: con RLS abierto en Supabase no hay rate-limit server-side real; el
+  throttle del cliente es la defensa principal (suficiente para este juego).
+VERIFICADO: 48 tests OK + pruebas en vivo contra el Supabase real con 2 usuarios
+(Ana recibe el mensaje de Bob → badge del chat =1 y sin_leer=1; solicitud de
+amistad → badge Amigos =1; playMessageSound no lanza error). Rate-limit del
+servidor: 2º envío inmediato 429, tras 1,5s 200; longitud 600→500; vacío 400.
+Throttle del cliente: 2º envío seguido bloqueado con toast.
+⚠️ PENDIENTE PARA EL DEPLOY: ejecutar el bloque "TIEMPO REAL" de dev/supabase.sql
+en Supabase (SQL Editor) y re-subir game.js a Netlify. Los badges funcionan igual
+con el polling de respaldo (~10s) aunque no se ejecute el SQL.
+
+SESIÓN 19/08 (16ª): TABLEROS 9/14/18 + MENOS MINAS + POPUP DEL SPIZ + DEALER
+--------------------------------------------------------------------------------
+TABLEROS Y DENSIDAD:
+- Tamaños 10/15/20 → 9/14/18 (index.html options, textos.js cantidades, game.js
+  SIZES/size inicial/updateSizeOptions, tienda: "Tablero Rayina 14×14" y
+  "Tablero Pollo 18×18"). El 14×14 sigue siendo el desbloqueable (board15) y el
+  18×18 el caro (board20, requiere 3 victorias). IDs de tienda SIN CAMBIAR.
+- Dificultades con MENOS densidad de minas: 0.08-180 → "0.06-180" (Fácil),
+  0.12-120 → "0.10-120" (Media), 0.16-60 → "0.14-60" (Difícil). Cambiado en
+  index.html, textos.js, game.js (diffs + updateDifficultyOptions + fallback),
+  balance-check.js y textos_juego.md. OJO: las claves de dificultad cambian,
+  los by{} antiguos (0.08-180_10...) quedan como histórico.
+- balance-check actualizado a 9x9/14x14/18x18 (y usa size 9 en sus cálculos).
+- test-lopa: 81 celdas (antes 100), 196 (antes 225), índices *9 en vez de *10.
+PROGRESIÓN MÁS RÁPIDA:
+- SHOP_WINS_REQ 5 → 3 y SHOP_TIME_REQ 600 → 300 (5 min). Toast de la primera
+  victoria ahora dice "3 victorias o 5 min".
+POPUP TUTORIAL DEL SPIZ (1ª vez que se pulsa):
+- triggerSpiz() llama a maybeShowSpizTutorial(bonusTime): overlay fijo centrado
+  (#spiz-tutorial, z-index 2400, pointer-events solo en la tarjeta) con
+  img/spiz.jpg en círculo cian arriba, texto debajo ("+Xs de tiempo" real,
+  resaltado en rosa de "guardarlos pa luego") y botón "✓ Entendido".
+  Se muestra UNA vez por navegador (localStorage 'buscalopas_spiz_tutorial').
+  El popup corto de +20%/+40% (showSpizPopup) sigue saliendo como siempre.
+BOTÓN DEALER EN EL HUD (tienda más visible):
+- Nuevo #hud-shop-btn dentro de .hud-stats (arriba a la derecha, entre el usuario
+  y el dinero): fila superior con 💰 cartera (#hud-shop-wallet, actualizada en
+  updateWalletDisplay) + título DEALER grande (Orbitron rosa) y debajo la foto
+  del dragon.jpg circular. Visible SOLO con shopUnlocked (renderShopButton) y
+  clic → openShopModal. #hud-money-btn sigue igual (clic abre la tienda si está
+  desbloqueada). CSS compacto en móvil.
+VERIFICADO: node --check en game.js/textos.js/balance-check.js/test-lopa.js,
+npm run balance (sin alertas) y 48 tests OK.
+⚠️ REVISIÓN DE BALANCE PENDIENTE (no tocado): con las ganancias actuales el
+primer objeto de la tienda (150€) tarda ~12 victorias en Fácil (13€/victoria
+media). Si se quiere que la primera compra llegue antes, tocar precios o añadir
+un bonus de primeras victorias.
+
+SESIÓN 19/08 (16ª, parte 2): MÚSICA CONTINUA + MODALES + RESULTADO MOVIBLE
+--------------------------------------------------------------------------------
+MÚSICA CONTINUA:
+- Se eliminaron los stopAllMusic() de los 3 caminos de fin de partida (timeout,
+  BOOM y winGame): la música ya NO se corta al terminar y NO vuelve a empezar al
+  ir al menú. Si terminabas en modo Lucifer, al entrar al menú sigue el switch a
+  la música normal (exitLuciferState/playNormalMusic). Al reiniciar partida,
+  initGame con isLuciferState=false cambia a normal si hacía falta.
+MODALES CERRABLES CLICANDO FUERA:
+- Nuevo bloque CLICK_OUTSIDE_MODALS (game.js): user-modal, pass-modal,
+  info-modal, friends-modal, player-modal y notes-modal se cierran con mousedown
+  en el fondo (e.target === el). user-modal respeta modalRequired (no se cierra
+  si es obligatoria); pass/friends ocultan también el globo de confirmación.
+- EXCLUIDOS a propósito (requieren click explícito): shop-modal (Tienda del
+  dealer), amulet-modal (visor de mecánicas), #spiz-tutorial (botón ✓ Entendido),
+  result-modal (sistema propio) y los desplegables (ya cerraban con closeDropdown).
+RESULTADO DE PARTIDA MÁS VISTOSO Y MOVIBLE:
+- #result-modal.modal-float .result-card: 520px (antes 440), max-height 72vh
+  (antes 55vh) y fondo casi opaco rgba(12,12,20,0.97) para no confundirse con el
+  tablero. Nuevo asa de arrastre .result-drag-handle ("⠿") arriba de la tarjeta.
+- Arrastre con pointer events: startResultDrag() se engancha al asa de la tarjeta
+  (excluye botones/enlaces) y al #result-reopen-btn (el botón 💰 cuando está
+  plegado). Ambos comparten la misma posición (x,y) guardada en localStorage
+  'buscalopas_result_pos' y con clamp suave para no perderla fuera de pantalla.
+  applyResultPos() se llama al mostrar/plegar la tarjeta y al arrancar; si la
+  posición no es 0,0 se desactiva la animación fadeIn para que no "salte".
+VERIFICADO: node --check game.js y 48 tests OK (el test de resultado con X +
+círculo de reabrir sigue pasando; el clic del botón 💰 no dispara el arrastre
+porque sin movimiento moved=false y el click sigue funcionando).
+
+SESIÓN 19/08 (16ª, parte 3): DEALER FUERA DEL HUD + BOTONES GRANDES + SPIZ + TEXTO MAYOR
+--------------------------------------------------------------------------------
+DEALER (tienda) REDISEÑADO:
+- #hud-shop-btn YA NO está dentro de la barra (.hud-stats): ahora es un botón
+  fijo (position:fixed, right:20px, top:92px, z-index:600) ENTRE la barra y el
+  ranking, con 💰 + DEALER grande (Orbitron rosa, 1.6em) y el dragon.jpg a su
+  ancho en su forma original (sin recorte circular, object-fit ninguno, aspect
+  original). NO muestra el dinero actual (solo el símbolo 💰). En móvil: más
+  compacto (150px, top:118px). Se quitó el #hud-shop-wallet (ya no existe).
+LOPAMULETOS MÁS GRANDES:
+- .amu 34px → 46px, emoji 1.05em → 1.3em, .hud-amulets min-height 48px.
+BOTONES DE PARTIDA MUCHÍSIMO MÁS GRANDES:
+- .game-controls ahora space-between con ancho completo (máx 900px): IZQUIERDA
+  Menú Principal + flecha ◀ (#back-menu-arrow, también lleva al menú), DERECHA
+  Reiniciar. Font-size 1.4em, padding 18px 34px, borde 2px.
+- Reiniciar se RESALTA EN ROJO al terminar la partida: .btn-reset-end (borde
+  #f72585 + pulso resetPulse) que openResultScreen() añade y clearLastResult()
+  quita (por tanto initGame/showMenu lo limpian).
+POPUP DEL SPIZ:
+- showSpizPopup() ahora muestra la palabra "SPIZ" EN GRANDE (Orbitron 1.9em,
+  azul cian, bold, italic y subrayada) arriba y el texto de siempre debajo
+  (.spiz-popup-word / .spiz-popup-body). Popup algo más ancho (240px).
+TEXTO GLOBAL MÁS GRANDE:
+- html { font-size: 18px } en style.css → escala todo lo que usa em.
+VERIFICADO: node --check game.js y 48 tests OK.
+
+SESIÓN 19/08 (16ª, parte 4): RESPONSIVE RANKING/DEALER + FILA CONTROLES + MODOS BLOQUEADOS
+--------------------------------------------------------------------------------
+RANKING Y DEALER MÁS GRANDES PERO RESPONSIVE (fix "se vuelve loco sin maximizar"):
+- Ranking: 230px → 320px; Dealer: 232px → 320px (💰 DEALER 2em + dragón grande).
+- Problema real: con el contenido centrado (máx 1000px), a ventanas <1700px los
+  paneles fijos se pisan con el tablero y los botones (reproducido en tests: el
+  dealer tapaba Reiniciar). FIX: @media (max-width:1700px) oculta ranking y
+  dealer; en pantallas anchas (>=1700px) aparecen grandes en los márgenes. En
+  móvil (<768px) el dealer vuelve a mostrarse compacto (150px, top 118px).
+- Los tests ahora corren a 1920x1080 (newContext y el test Sin contraseña) para
+  que ranking/dealer sean visibles; los contextos de Lucifer siguen a 1280.
+FILA DE CONTROLES DE PARTIDA REDISEÑADA:
+- .game-controls ahora es una fila de ancho completo (máx 1000px, space-between,
+  flex-wrap): IZQUIERDA ◀ + Menú Principal · CENTRO (.game-hud-inline) el
+  RELOJ (.timer-big 2.2em) y los TURULOS (.stats-bar/.stat-item 1.5em) todo lo
+  grandes que pueden · DERECHA Reiniciar. Se eliminó .game-hud-row.
+- El cuadro rojo de Farlopín (.hero-info-card) se movió DEBAJO de la fila de
+  controles (antes encima de la fila), justo antes del tablero.
+MODOS BLOQUEADOS (turulos/hybrid):
+- game.js lockUnavailableModes(): los modos Borrachín (turulos) y Politoxiquín
+  (hybrid) salen DISABLED con 🔒 en el texto y title "🔒 Próximamente" (hover).
+  applyTextosToSelects() lo re-aplica después de poner las etiquetas de textos.js
+  y fuerza el selector a 'classic'. En tests, startGame() habilita la opción por
+  evaluate antes de selectOption (siguen probando turulos).
+AMIGOS/CHAT MÁS GRANDES:
+- .floating-btn (🤝 Amigos y 💬 Chat): font 0.95em → 1.4em, padding 16px 26px.
+  .chat-badge 20px → 26px.
+MENÚ DE USUARIO MÁS GRANDE:
+- .hud-user font 1.2em; el nombre (#hud-user) tiene min-width 8ch (nombres
+  cortos no quedan diminutos). .user-dropdown min-width 260px, .dd-item 1.25em y
+  más padding. "Cerrar sesión" (#dd-logout) es AHORA LA ÚLTIMA opción y en rojo
+  (#f72585) con separador superior.
+VERIFICADO: node --check game.js/test-lopa.js y 48 tests OK.
+
+SESIÓN 20/08 (17ª): CONTROL DEL GUARDADO DE CONTRASEÑA DEL NAVEGADOR +
+SFX DE NOTIFICACIONES + LIMPIEZA DE SUPABASE
+--------------------------------------------------------------------------------
+GUARDADO DE CONTRASEÑA (Firefox/Chrome NO preguntan a lo loco):
+- ANTES: los inputs de login/crear cuenta NO estaban en <form>, y el campo de
+  contraseña de login (#name-pass-input) usaba autocomplete="new-password", así
+  que Firefox ofrecía guardar la contraseña EN CADA login/creación (molestia).
+- AHORA (index.html + game.js):
+  1) #user-modal se envuelve en <form id="login-form" autocomplete="on"> con
+     #user-input → autocomplete="username" y #name-pass-input →
+     autocomplete="current-password" (login real). Botones Borrar/Generar/
+     Registrarse/Cerrar → type="button" (no disparan submit).
+  2) #pass-modal se envuelve en <form id="pass-form" autocomplete="on"> con
+     #pass-user → autocomplete="username" y #pass-input/#pass-input2 →
+     autocomplete="new-password" (creación real). Confirmar → type="submit".
+  3) game.js: submit de #login-form → e.preventDefault() + confirmUser();
+     submit de #pass-form → e.preventDefault() + confirmPassword(). Se quitaron
+     los manejadores de Enter/clic duplicados (el <form> ya captura Enter).
+     .modal-form { display:contents } para que el <form> no rompa el layout.
+  4) offerPasswordSave(username, password, isNew): SOLO cuando el login con
+     contraseña es EXITOSO (confirmUser, tras finishLogin) o cuando se TERMINA
+     de crear la cuenta (doCreatePassword). Crea un <form> oculto con los
+     campos y lo envía (method POST) a pwsave.html dentro de un iframe oculto
+     del mismo origen → el navegador muestra su aviso de "guardar contraseña"
+     justo en ese momento y NO antes. La página principal no se recarga.
+  5) pwsave.html NUEVO archivo en la raíz (página en blanco) → SE SUBE a
+     Netlify junto al resto (es el destino del POST del formulario oculto).
+- RESULTADO: el navegador solo pregunta por guardar la contraseña tras un login
+  exitoso o tras crear la cuenta; deja de aparecer en intentos fallidos o en
+  cada interacción con el modal.
+SFX DE NOTIFICACIONES / DESBLOQUEOS (pendiente del resumen, hecho):
+- playUiSound() (WebAudio, "blip" corto de 2 tonos) RESPETA mute y volumen.
+  Se llama en: desbloqueo de LopAmuletos/Maldiciones (checkAmuletUnlocks),
+  desbloqueo de la tienda (checkShopUnlock), regalo de la reliquia del dragón
+  (giftDragonRelic) y activación del Rastreador (handleCorrectFlagReveal).
+LIMPIEZA DE SUPABASE (CORREGIDA el 20/08, 2ª pasada):
+- ⚠️ CRITERIO IMPORTANTE (error corregido): los nombres "predefinidos" de
+  nombres.txt (xX_*, ~*_*~, -_-, leet speak, "perry", "pedro1", "paul666"...)
+  NO son cuentas de prueba: es GENTE REAL que ha probado el juego. NUNCA borrarlos.
+- RESTAURADO 20/08: xX_Farlopron_69_Xx ("farlopon", 2º mejor jugador, total 573)
+  se borró por error en la 1ª limpieza (amistad con ed + 11 mensajes de chat).
+  YA restaurado al 100%: fila de scores intacta (no se pudo borrar por RLS),
+  friendships ed|xX_Farlopron_69_Xx y los 11 mensajes con ed/Lucifer recreados.
+- La clave ANÓNIMA NO puede borrar filas de scores (RLS bloquea DELETE).
+- Solo son cuentas de prueba REALES (creadas por los tests automáticos):
+  PruebaConexion, MobTest, FlagsTester, SpizTester, TestLopero, AnaReal,
+  BobReal, LoperoDePrueba, ShopTester, MechTester, LuciferTester,
+  MobTest1787157320123, VCheck1787157338912, VCheck1787157363559,
+  LayTest1787158936733, LayTest1787158980890, LayTest1787159002468,
+  LayTest1787159007285, RealtimeAna, RealtimeBob. (20 filas, sin datos en
+  amigos/chat/notas → solo borrar de scores.)
+- Para borrarlas, pegar este SQL en Supabase → SQL Editor:
+    DELETE FROM scores WHERE lower(name) IN ('PruebaConexion', 'MobTest',
+    'FlagsTester', 'SpizTester', 'TestLopero', 'AnaReal', 'BobReal',
+    'LoperoDePrueba', 'ShopTester', 'MechTester', 'LuciferTester',
+    'MobTest1787157320123', 'VCheck1787157338912', 'VCheck1787157363559',
+    'LayTest1787158936733', 'LayTest1787158980890', 'LayTest1787159002468',
+    'LayTest1787159007285', 'RealtimeAna', 'RealtimeBob');
+- dev/cleanup-db.js AHORA conserva todos los usuarios reales/conocidos en su
+  lista KEEP (ed/Ed, fff, lopo, amego, colego, Lucifer + xX_*, ~*_*~, perry,
+  paul666, pedro1...). OJO: NO correrlo sin revisar la lista (mejor correrlo
+  con KEEP=... explícito o leer antes qué marcaría a borrar).
+VERIFICADO: node --check en game.js/server.js/test-lopa.js y 48 tests OK.
+
+
+SESIÓN 20/08 (18ª): RESPONSIVE (RANKING/DEALER/BOTONES) + VIBRACIÓN MÓVIL
+--------------------------------------------------------------------------------
+PROBLEMAS REPORTADOS:
+- Con la ventana NO maximizada (< 1700px) no se veían ni el ranking ni el dealer
+  (un @media los ocultaba con display:none).
+- Los botones flotantes Amigos/Chat (abajo-izquierda) se pisaban entre sí al
+  cambiar el tamaño de la ventana.
+- En móvil, todo lo nuevo debe quedar bien (prioridad) y se pide vibración al
+  poner turulo y al explotar.
+
+SOLUCIÓN (opciones elegidas por el usuario: PC compactos fijos / móvil
+desplegables / botones en columna fija / vibración turulo+explosión):
+1) RANKING Y DEALER:
+   - PC >= 1700px: se mantienen GRANDES en el margen derecho (como estaba).
+   - PC 769-1699px (ventana no maximizada): VERSIÓN COMPACTA fija a la derecha.
+     body gana padding-right:320px para dejar hueco, .ranking-panel y
+     .hud-shop-btn se estrechan a 280px. El ranking baja a top:480px (debajo del
+     dealer, que ocupa ~100-350px) y se sitúa arriba (top:130px) con :has() si el
+     dealer NO está desbloqueado. max-height + overflow-y:auto para no salirse.
+   - Móvil (<768px): RANKING = DESPLEGABLE. Nuevo botón flotante
+     #ranking-toggle-btn (🏆) abajo-izquierda (bottom:118px) que alterna la clase
+     .ranking-open en el panel → aparece como panel flotante a la derecha
+     (top:205px, max-height). El DEALER pasa a píldora pequeña (solo texto
+     💰 DEALER, sin dragón) arriba-derecha para no tapar el tablero.
+   - game.js: sidePanelReserve() devuelve 320px cuando 769<=ancho<1700 y
+     boardCellSize() lo resta del ancho disponible → el tablero nunca se mete
+     debajo del ranking/dealer compactos. resize() ya re-renderiza.
+   - toggleRankingPanel() alterna .ranking-open y resetea scrollTop.
+2) BOTONES FLOTANTES AMIGOS/CHAT (columna fija que se adapta):
+   - .chat-panel ahora mide height: min(420px, 58vh) en vez de 420px fijos.
+   - body.chat-open .floating-requests ya NO usa bottom fijo (540px): usa
+     calc(70px + min(420px, 58vh) + 16px) y el desplegable el mismo +56px+12px.
+     Con min() el botón nunca se sale por arriba en ventanas bajas.
+   - Móvil: columna fixed bottom 10/64/118 (chat, amigos, ranking); con el chat
+     abierto suben a calc(68vh+58px) y calc(68vh+106px).
+3) VIBRACIÓN MÓVIL (navigator.vibrate, protegida con try/catch y soporte):
+   - handleTurulo: al COLOCAR un turulo → vibrate(30) (pulso corto).
+   - handleReveal (explosión): al pisar una papela → vibrate([120,60,120])
+     (patrón más fuerte). Solo funciona en móvil/Android (en desktop no hay API).
+    - Función nueva vibrate(pattern) cerca de playUiSound().
+VERIFICADO: node --check en game.js y 48 tests OK.
+
+
+SESIÓN 20/08 (19ª): iPod (MÚSICA DE FONDO) + INFO MEJORADA + LUCIFER PREMIA +
+COLA DE NOTIFICACIONES DE FIN DE PARTIDA
+--------------------------------------------------------------------------------
+DECISIONES DEL USUARIO (consultadas): el iPod ELIGE la música de fondo; la
+notificación de Lucifer sale al entrar Y resumen al final; en fin de partida las
+notifs van PRIMERO y el resultado al FINAL (botón Siguiente); los popups de info
+(Spiz/Lucifer) se cierran con clic fuera O con botón.
+
+1) iPOD (nuevo, gestiona la música):
+   - SPRITE img/ipod.jpg ya está en el repo (el usuario confirmó que hay que
+     subirlo con el resto; es "solo de muestra", el dispositivo nano 3 real se
+     dibuja con CSS en el modal).
+   - COMPRA EN LA TIENDA: hueco fijo #shop-ipod-slot DEBAJO del dragón en la
+     columna derecha (NO es stock diario). Precio 666€. Se pinta en
+     renderShopIpod() → comprar (buyIpod) marca statsData.ipod=true.
+   - PANEL FIJO: al tenerlo, #ipod-panel aparece abajo a la derecha (debajo del
+     ranking) con la imagen del dispositivo + pista activa. En móvil es una
+     píldora compacta abajo-derecha (bottom:64).
+   - MODAL ESTILO NANO 3 (CSS puro): #ipod-modal con pantalla (lista de pistas,
+     "Sonando:") y rueda clicable (MENÚ/⏮/▶⏸/⏭). Se cierra con X o clic fuera.
+   - PISTAS (IPOD_TRACKS en game.js): cyber (musica_normal, siempre) y
+     luciferbeats (musica_lucifer, se desbloquea al llegar a Lucifer ≥1). La
+     pista activa (statsData.ipodTrack) la usa playNormalMusic() como música de
+     fondo → el iPod ELIGE la música del juego.
+   - TIEMPO ESCUCHANDO: statsData.musicTime[trackId] segundos. startMusicTime
+     Tracking() acumula en local y sube con saveStats() SOLO cada 60s (no en
+     tiempo real) → SIN sobrecoste en Supabase (las stats ya son un JSON upsert).
+     Se muestra el tiempo junto a cada pista en el modal.
+   - normalizeStats/emptyStats ampliados: ipod, ipodTrack, musicTime,
+     luciferTime y levels.lucifer.
+
+2) MENÚ DE INFO MÁS GRANDE (#info-modal .modal-card → 520px, filas más
+   separadas). Añadidas: 🔥 Veces en Lucifer (info-lucifer) y 🔥 Tiempo en
+   Lucifer (info-lucifer-time, formateado con formatTimeShort).
+   - FILAS CLICABLES: Spiz guardados → popup info del Spiz; Veces/Tiempo en
+     Lucifer → popup info del modo Lucifer (info-clickable + listeners).
+
+3) POPUP DE INFO REUTILIZABLE (#info-popup): imagen/emoji + título + desc +
+   botón Entendido. Se cierra con clic fuera (mousedown sobre el fondo) o con el
+   botón. Se usa para: info del Spiz (desde fila de Info y desde la celda del
+   Spiz revelada por el Vidente en el tablero), info del Modo Lucifer, y aviso
+   AL ENTRAR en modo Lucifer (enterLuciferState → openInfoPopup).
+
+4) LUCIFER PREMIA (mejora pedida por el usuario):
+   - Turulos correctos en modo Lucifer valen el DOBLE (luciferTuruloMultiplier,
+     base ×2). Se cuenta gameCorrectTurulosLucifer por partida (handleTurulo).
+   - MEJORA DE LUCIFER comprable en la tienda (luciferUpgrade, kind level,
+     levels.lucifer, máx 5, +50% por nivel → ×2*(1+0.5*nivel)). Requiere
+     luciferReached ≥1. Aparece en el stock diario.
+   - Desglose de resultado separa "Turulos correctos" y "Turulos en modo
+     Lucifer (N × base ×mult)".
+   - luciferElapsed cuenta segundos en modo Lucifer → statsData.luciferTime
+     (commitPlayTime). Se muestra en el menú Info y en el resumen de fin.
+
+5) COLA DE NOTIFICACIONES DE FIN DE PARTIDA (notifs primero, resultado al final):
+   - #notice-modal con icono/título/mensaje/imagen + botón Siguiente ▶ (último
+     → Entendido ✓). noticeQueue + showNextNotice + flushNotices.
+   - showResultAfterNotices() encola: tutorial Spiz 1ª vez (si no visto) y
+     resumen de Lucifer (si luciferElapsed>0). Al terminar la cola → resultado.
+   - winGame / boom (handleReveal) / timeout (startTimer) usan
+     showResultAfterNotices en vez de openResultScreen directo.
+   - BUG ARREGLADO: al coger el Spiz siendo la ÚLTIMA casilla no salía la
+     notificación explicativa (el resultado la tapaba). Ahora maybeShowSpizTutorial
+     recibe deferToQueue cuando spizIsLast (safeCellsRemaining<=1) y la noticia
+     entra en la cola → sale ANTES del resultado.
+
+6) SPIZ IMAGEN COMPLETA: .spiz-tutorial-img y .info-popup-img ahora usan
+   object-fit:contain con fondo y borde redondeado (ya NO círculo que recorta).
+
+7) MENSAJE DE FARLOPÍN DEBAJO DEL TABLERO: .hero-info-card se movió en el HTML
+   a después de .board-container (arriba quedaba muy cargado, abajo vacío).
+   CSS: margin-top:16px (en vez de flex:1/margin-bottom).
+
+NOTAS: El usuario repuso el balance. El hueco del iPod en la tienda es fijo (no
+depende del día). Si no hay 666€ el botón sale deshabilitado. El aviso de Lucifer
+al entrar es un modal bloqueante (regla de "cosas importantes"); el timer sigue
+corriendo detrás. La tienda también se cierra ya con clic fuera (CLICK_OUTSIDE_MODALS).
+VERIFICADO: node --check en game.js, 48 tests OK, y pruebas funcionales en
+browser (compra/panel/modal/cambio de pista, spiz última casilla con cola,
+popup lucifer + bonus turulos ×2).
+
+
+SESIÓN 20/08 (19ª-bis): iPod = REPRODUCTOR NANO 3 NEGRO SOBRE EL FONDO +
+BOTONES AMIGOS/CHAT SIN CHOCARSE + REPASO MÓVIL
+--------------------------------------------------------------------------------
+DECISIONES DEL USUARIO: en vez de la foto (ipod.jpg) en el hueco fijo, el iPod
+debe ser un REPRODUCTOR REAL estilo nano 3 (como el del modal) directamente
+sobre el fondo, interactivo desde el menú principal, NEGRO como el nano 3G.
+El tiempo escuchando por canción NO debe mostrarse públicamente.
+Y los botones de Amigos y Chat se chocaban (y al desplegarse también) → arreglar.
+
+1) iPOD = REPRODUCTOR FIJO (YA NO FOTO, YA NO MODAL):
+   - #ipod-panel ahora contiene el dispositivo nano 3 (pantalla + rueda) negro,
+     dibujado en CSS (gradientes #1d1d22→#050507, wheel oscuro, texto claro).
+     Se ELIMINÓ #ipod-modal, los botones #ipod-close-btn, la clase .ipod-card,
+     .ipod-panel-inner, .ipod-panel-img y .ipod-panel-track.
+   - INTERACTIVO DIRECTO: clic en una pista de la lista la selecciona; la rueda
+     funciona siempre: MENÚ (toggle mini "solo canción actual" vía
+     .ipod-screen-mini), ▶⏸ play/pause, ⏮/⏭ prev/next.
+   - El "Abrir iPod" de la tienda desaparece (ya está en el hueco); al comprar
+     ya no se abre modal. CLICK_OUTSIDE_MODALS ya no incluye ipod-modal.
+   - TIEMPO ESCUCHANDO PRIVADO: se sigue acumulando en statsData.musicTime (para
+     stats personales) pero se QUITÓ de la lista de pistas (no se muestra en
+     público). Se mantiene la subida cada 60s con saveStats (sin coste extra).
+   - Z-INDEX 510 (debajo de botones flotantes 1700 y ranking 500 que se pisa).
+
+2) BOTONES AMIGOS/CHAT SIN CHOCARSE (medido con Playwright en varios tamaños):
+   - DESKTOP (>=769): chat bottom:20, amigos bottom:110 (los botones miden ~66px,
+     antes 84 pisaba al chat). Desplegable de Amigos bottom:186 (encima de amigos).
+     Chat-panel bottom:96 (encima del botón chat, antes 70 lo pisaba).
+     Con chat abierto: amigos → calc(96px+min(420px,58vh)+16px) y desplegable →
+     +66px+12px más arriba. El botón chat se queda abajo (debajo del panel).
+   - MÓVIL (<768): columna fija chat 10 / amigos 64 / ranking 118 (gap 54px).
+     Desplegable de Amigos bottom:166 (encima del botón ranking, antes 118 pisaba).
+     Con chat abierto (panel 68vh): el botón CHAT se OCULTA (display:none; el
+     panel tiene su propia X), amigos → calc(68vh+16px), ranking → calc(68vh+63px),
+     desplegable → calc(68vh+110px). Nada se pisa.
+   - toggleChatPanel() ahora cierra el desplegable de Amigos al abrir el chat.
+   - MEDIDO en 1280/1500/1200/1000/800/768/390/360px: DEFAULT, CHAT y AMIGOS
+     abiertos → 0 solapamientos en todos los casos.
+
+3) VOLUMEN vs iPOD: body.ipod-owned #volume-control-floating { bottom:360px }
+   en escritorio (el reproductor mide ~340px, antes el volumen quedaba encima).
+   En móvil se mantiene bottom:10 (el iPod compacto va por encima del volumen),
+   con override de igual especificidad dentro del media query móvil.
+
+4) MÓVIL REVISADO: reproductor iPod compacto (148px, pantalla y rueda
+   proporcionadas, bottom:60 derecha) sin chocar con volumen ni botones;
+   chat abre/cierra bien (botón oculto + X del panel); columna de botones fija.
+VERIFICADO: node --check OK, 48 tests OK, medidas de solapamiento 0 en todas las
+vistas, y flujo iPod (comprar, elegir pista, next, play/pause, mini) OK en browser.
+
+
+SESIÓN 20/08 (20ª): COLUMNA DERECHA EQUIDISTANTE + SPIZ/LUCIFER/MILAGRO +
+RESULTADO MÁS GRANDE Y PLEGADO ESTABLE
+-------------------------------------------------------------------------------
+COLUMNA DERECHA (style.css) — el iPod ya no se pisa con el volumen:
+- VOLUMEN: SIEMPRE queda abajo-derecha (bottom:20 desktop / 10 móvil). Se quitó
+  el override body.ipod-owned { bottom:360px } que lo flotaba sobre el iPod.
+- iPOD: sube a bottom:90px (desktop y compacto 769-1699) → queda por encima del
+  volumen con hueco. En móvil baja a 126px de ancho y bottom:52 para caber entre
+  el tablero 9x9 y el volumen; el texto de la tarjeta de Farlopín se aparta con
+  body.ipod-owned .hero-info-card { padding-right:150px } (solo móvil) para no
+  quedar tapado.
+- DEALER: baja a top:130px (desktop) / 160px (compacto) para separarse de la barra
+  (que puede envolver 2-3 líneas). El dragón se limita con max-height:200px
+  (desktop) / 150px (compacto) con object-fit:contain para que quepa todo junto.
+- RANKING: deja de estar centrado; ahora queda anclado ENTRE el dealer y el iPod
+  (top:444 bottom:460 desktop; top:395 bottom:448 compacto) → se ve equidistante
+  y nunca se pisa con el iPod. Si el dealer no está desbloqueado sube (top:130).
+- VENTANAS BAJAS (max-height:950, desktop+compacto): el dealer pasa a píldora
+  (sin dragón, top:200) y el ranking sube (top:250). Si la ventana es MUY baja
+  (<790px) el ranking se oculta (como en móvil) para no quedar aplastado.
+- MÓVIL: el header ya NO crece tanto: .hud-amulets ahora va en una sola fila con
+  scroll horizontal (nowrap+overflow-x), header ~106px → el botón DEALER
+  (píldora, top:112) vuelve a ser visible (antes quedaba detrás del header).
+- PANTALLA DE JUEGO: más aire entre la fila de controles y el tablero
+  (.game-controls margin-bottom 20→44px) y entre el tablero y la tarjeta de
+  Farlopín (margin-top 16→40px). La tarjeta de Farlopín tiene letras MÁS GRANDES
+  (título 1.35em, misión 1.05em, más padding).
+FOTOS Y LETRAS MÁS GRANDES (style.css):
+- .notice-img 160→260px y .notice-card 480→560px (la foto del Spiz se ve GRANDE
+  en la notificación de fin de partida). .info-popup-img 150→230px y card a 500px.
+- PANTALLA DE RESULTADO: más grande (560px) y letras mayores: título 1.55em,
+  filas 1.1em, secciones 0.95em, total 1.3em.
+- RANKING: título 1.3em, filas 1.05em (compacto 1em), rango con min-width 26px.
+RESULTADO PLEGADO ESTABLE (game.js):
+- BUG: arrastrar el círculo 💰 (resultado plegado) disparaba el click del botón y
+  LO DESPLEGABA. FIX: tras un arrastre real (resultDrag.moved) se marca
+  resultDragJustMoved y el click de #result-reopen-btn lo ignora → mover NO cambia
+  si está plegado o desplegado. El click simple sigue reabriendo (test OK).
+MILAGRO: LA BOLSA QUEDA A LA VISTA (game.js + style.css):
+- Al activarse el Milagro la mina ya NO se borra del tablero: se destapa y queda
+  VISIBLE como bolsa "desactivada" (.cell.mine-disarmed, fondo verdoso + imagen
+  atenuada). Se marca en milagroDisarmed[r-c]. NO resta casillas seguras (no se
+  usa revealCell sobre la mina) → no altera la condición de victoria.
+  checkTuruloWin() cuenta las bolsas desactivadas como satisfechas (modo turulos).
+- TEST actualizado: minas intactas, celda destapada con clase mine-disarmed y
+  safeCellsRemaining sin cambios.
+NOTIFICACIÓN DEL SPIZ (game.js) — SOLO 1ª vez y AL FINAL:
+- maybeShowSpizTutorial ya NO muestra el overlay #spiz-tutorial en mitad de la
+  partida: solo marca spizFirstTouch. La explicación se encola (Siguiente ▶)
+  SOLO en la 1ª partida en la que se toca el Spiz (flag buscalopas_spiz_tutorial)
+  y sale ANTES del resultado. Después solo se ve el Spiz clicando en su palabra/
+  fila de Info (info popup con la foto GRANDE). Si no se toca el Spiz, no sale.
+LUCIFER SIN POPUP BLOQUEANTE (game.js + style.css):
+- Al ENTRAR en Lucifer ya NO abre openInfoPopup (bloqueante, desenfocaba): sale un
+  TOAST TEMPORAL en la zona media-izquierda (.toast[data-type="lucifer"], top:38%,
+  borde rosa, 5s, sin blur) tipo "tienda desbloqueada". Va el ÚLTIMO (después del
+  Subidón) para que no lo tape. La partida sigue con normalidad.
+- Al FINAL de la 1ª partida con Lucifer (flag buscalopas_lucifer_notice) se encola
+  un popup IMPORTANTE con la descripción completa (TX.luciferInfo) + resumen
+  (tiempo en Lucifer, ×bonus). En partidas siguientes ya no sale.
+VERIFICADO: node --check en game.js/test-lopa.js/textos.js, 48 tests OK, y 20
+checks funcionales en browser (milagro bolsa visible, spiz 1ª vez al final sin
+overlay, lucifer toast + popup 1ª vez, arrastre plegado estable, móvil 390x844
+sin solapes con tablero/Farlopín/volumen). Medidas de la columna derecha
+equidistantes en 1920x1080 / 1400x900 / 1000x700 / 390x844 / 360x740.
+⚠️ REDEPLOY: subir game.js, style.css (y si toca index.html/textos.js) a Netlify.
+
+
+SESIÓN 20/08 (21ª): NOTIFICACIÓN DEL SPIZ CON VIDENTE + DEALER GIGANTE PEGADO
+AL TABLERO + RANKING MENOR + AMULETOS CERRABLES + MENÚ SIN "CARTERA" + FARLOPÍN
+--------------------------------------------------------------------------------
+1) BUG NOTIFICACIÓN DEL SPIZ (game.js):
+   - CAUSA: al jugar con el VIDENTE activo, clicar la casilla del Spiz revelada
+     abría SIEMPRE el info-popup del Spiz (#info-popup), incluso para jugadores
+     que ya habían visto el tutorial (jugadores "ya creados" y cada vez que se
+     usaba el Vidente).
+   - FIX: helper spizTutorialSeen() (lee el flag buscalopas_spiz_tutorial, que
+     también usa maybeQueueSpizNotice) y renderBoard() solo engancha el listener
+     del popup sobre la celda .vidente-spiz SI el tutorial NO se ha visto.
+     Primera vez: popup informativo (y al final la notificación "¡Primer Spiz!").
+     Después: clicar el Spiz del Vidente SOLO lo dispara, sin popup. El Spiz se
+     sigue viendo por su palabra/fila de Info como antes.
+2) BOTÓN DEALER (style.css):
+   - MÁS GRANDE: base 260→320px de ancho y título 2→2.2em (menú/escritorio);
+     dragón igual (200px) para no chocar con el ranking.
+   - ⚠️ SE REVIRTIÓ la idea de "anclar el dealer a la derecha del tablero"
+     (CORRECCIÓN del usuario, ver 23ª sesión): el dealer y el ranking NO se
+     mueven al entrar en la partida; quedan SIEMPRE en la misma posición que
+     en el menú principal. El botón que va a la derecha del tablero es el de
+     la RELIQUIA del Dragón, no la tienda.
+3) RANKING UN POCO MÁS PEQUEÑO (style.css):
+   - 320→290px de ancho, título 1.3→1.15em y filas 1.05→0.98em (queda por
+     debajo del dealer). En compacto (769-1699) 280→270px y el dealer sube a
+     300px/título 1.7/dragón 170px (el ranking baja a top:420 para no pisarlo).
+4) VISOR DE AMULETOS CERRABLE CLICANDO FUERA (game.js):
+   - amulet-modal entra en CLICK_OUTSIDE_MODALS (cierra con closeAmuletModal,
+     que ya filtra los botones de LopAmuletos conseguidos del resultado).
+5) MENÚ PRINCIPAL SIN LA PALABRA "CARTERA" (index.html):
+   - El stat de dinero pasa de "💰 Cartera: N€" a solo "💰 N€" (nombre de
+     usuario con su 👤 a la izquierda, dinero pegado a la derecha).
+6) TARJETA DE FARLOPÍN (textos.js + game.js):
+   - La misión de classic ahora menciona que también puedes MARCAR CON TURULOS
+     (clic derecho) dónde crees que están las bolsas, aunque no haga falta para
+     ganar. En MÓVIL (goalMobile, hero-info-goal cambia con isMobileView():
+     max-width:768px) sale una instrucción adaptada: "Toca las casillas para
+     destaparlas... mantén pulsada una casilla para poner un turulo".
+VERIFICADO: node --check en game.js/textos.js, 48 tests OK, y comprobaciones en
+browser con Playwright: popup del Spiz NO abre con tutorial visto / SÍ la 1ª vez,
+visor de amuletos se cierra clicando fuera, menú sin "Cartera", tarjeta de
+Farlopín con turulos (y versión móvil), y solapes a 0 en 1920x1080 (menú,
+tableros 9/14/18), 1400x900 y 390x844 (dealer pegado al tablero, ranking debajo).
+⚠️ REDEPLOY: subir game.js, style.css, index.html y textos.js a Netlify.
+
+
+SESIÓN 20/08 (22ª): NOMBRES SIN MAYÚSCULAS + jugar.sh A dev/ + MENOS ARCHIVOS
+--------------------------------------------------------------------------------
+1) USUARIOS NO DISTINGUEN MAYÚSCULAS (game.js + dev/server.js):
+   - fetchPlayerData() busca SIN distinguir mayúsculas y devuelve el nombre
+     CANÓNICO en data.name:
+     * Supabase: .eq('name', name) → .ilike('name', name).limit(1).maybeSingle().
+     * Local: /api/player ahora hace la búsqueda por lowercase sobre scores.json
+       y responde con la clave real (name canónico).
+   - confirmUser() usa SIEMPRE data.name (canónico) para setUsername/hashPassword/
+     rememberPassHash/finishLogin/offerPasswordSave. Así escribir "casoprueba"
+     entra como "CasoPrueba" y la contraseña se verifica contra el nombre real
+     de la cuenta (el hash es buscalopas::nombre::pass). Los usuarios NUEVOS se
+     crean con la capitalización que teclees (los nombres generados tipo leet
+     siguen igual).
+   - registerUser()/confirmPassword(): como fetchPlayerData ya es
+     case-insensitive, registrar "ED" cuando existe "ed" se bloquea ("ya está en
+     uso"). confirmPassword() además normaliza TU propio nombre a distinta
+     capitalización para no bloquear ni duplicar.
+   - dev/server.js: /api/player case-insensitive + userExistsInDB() (usado por
+     /api/user) también case-insensitive.
+   - VERIFICADO con Playwright: login "casoprueba"/clave → HUD "CasoPrueba",
+     login "ED" → HUD "ed", registrar "CASOPRUEBA" bloqueado. 48 tests OK.
+2) jugar.sh MOVIDO A dev/ (jugar.sh: raíz → dev/jugar.sh, ejecutable):
+   - El script hace cd al propio directorio; ahora log en dev/server.log y arranca
+     node dev/server.js (que ya servía los estáticos desde la raíz con __dirname).
+     Se borró el jugar.sh de la raíz. Doble clic o `bash dev/jugar.sh`.
+3) ARCHIVOS: SE PUEDE/SE HA BORRADO nombres.txt (ya no existe):
+   - loadNames() usa TEXTOS.nombres (los 100 nombres) y NUNCA hace fetch de
+     nombres.txt cuando existe el array → seguro borrarlo / no subirlo.
+   - pwsave.html SÍ SE SUBE (imprescindible): es la página en blanco a la que
+     envía el formulario oculto de offerPasswordSave() para que el navegador
+     ofrezca guardar la contraseña; sin él el POST daría 404 y no preguntaría.
+⚠️ REDEPLOY: subir game.js, dev/server.js NO se sube (local), index.html/textos.js
+si cambian. Ya NO hace falta subir nombres.txt.
+
+
+SESIÓN 20/08 (23ª): CORRECCIÓN — DEALER/RANKING FIJOS + RELIQUIA A LA DERECHA
+--------------------------------------------------------------------------------
+ERROR DE ENTENDIMIENTO (aclarado por el usuario): el botón que va a la derecha
+del tablero NO es la tienda (el DEALER); es el botón de la RELIQUIA del Dragon
+Narco (#relic-dragon-btn, el "+50€" que se pulsa cada 10 partidas).
+1) DEALER Y RANKING SIEMPRE FIJOS (game.js + style.css):
+   - Se ELIMINÓ positionShopButton() y la clase .shop-btn-next-board: el botón
+     de la tienda queda en su posición fija del menú (right:24 top:130, 320px)
+     TAMBIÉN durante la partida. El ranking igual (top:444 desktop). Nada se
+     mueve ni se oculta al entrar al tablero. (Se mantiene el dealer más grande
+     y el ranking un poco menor de la sesión 21.)
+2) RELIQUIA DEL DRAGÓN A LA DERECHA DEL TABLERO (game.js):
+   - Nueva positionRelicButton(): cuando el botón está visible (dragonRelicReady),
+     se ancla JUSTO a la derecha del tablero (board.right+20px) centrado en
+     vertical (antes estaba fijo arriba a la izquierda). Se llama desde
+     updateRelicDragonButton(), al final de renderBoard() y en el resize.
+   - En MÓVIL (<768px) el tablero llena el ancho, así que la reliquia se queda
+     en su sitio CSS (arriba a la izquierda, pequeña), como estaba.
+   - El bonus sigue siendo +50€ (RELIC_DRAGON_BONUS), pendiente de tunear.
+VERIFICADO: node --check game.js, 48 tests OK, y comprobaciones en browser:
+en 1920x1080 el dealer y el ranking tienen EXACTAMENTE la misma posición en el
+menú y en la partida, y la reliquia aparece a la derecha del tablero (gap 20px);
+en móvil 390x844 la reliquia queda arriba a la izquierda sin pisar el tablero.
+⚠️ REDEPLOY: subir game.js y style.css a Netlify.
+
+
+SESIÓN 20/08 (24ª): REPASO MÓVIL — HUD 2 FILAS + AJUSTES + CONFIRMACIÓN MODAL +
+VOLUMEN TOP-IZQUIERDA + CONTROLES SIN SOLAPES
+--------------------------------------------------------------------------------
+Problemas del usuario (móvil):
+1) El menú de usuario (barra superior) no se veía bien: se pedía menú+tíenda a
+   la derecha y un desplegable que no chocara con nada.
+2) En partida, el título central "BUSCALOPAS 2.0" quedaba TAPADO por la barra de
+   estado (que ya salía en dos niveles). Propuesta: fila 1 = usuario + tienda,
+   fila 2 = LopAmuletos con scroll horizontal.
+3) El reloj y los turulos se SOLAPABAN en la fila de controles en móvil.
+4) Farlopín abajo: ranking/amigos tapaban el mensaje al hacer scroll al máximo.
+5) ⚠️ Las CONFIRMACIONES salían abajo y casi no se veían (y bloqueaban el juego).
+6) ⚠️ El botón de mute/volumen (abajo-derecha) tapaba el botón "Generar lopero"
+   al abrir el juego por primera vez.
+7) Se pidió crear "⚙️ Ajustes" en el menú de usuario (volumen + mute dentro).
+
+CAMBIO 1 — HUD SUPERIOR EN 2 FILAS (móvil, style.css):
+- Fila 1: .hud-title compacto (0.7em) a la izquierda + .hud-stats (botón de
+  usuario a la DERECHA con margin-left:auto, dinero pegado) sin wrap. El nombre
+  se trunca con ellipsis (#hud-user max-width 92px / .hud-user max 140px).
+- Fila 2: #hud-amulets con order:3 + flex:1 0 100% → SOLA en su fila, con
+  overflow-x:auto (scroll horizontal de LopAmuletos, como pedía el usuario).
+- .user-dropdown z-index 2700 (por encima del banner 2550→900 y de modales) y
+  con max-height + overflow-y en móvil: el desplegable se abre alineado a la
+  derecha del botón, hacia dentro de la pantalla, sin chocarse con nada.
+- body padding-top móvil 70→112px: el título central ya NO queda bajo la barra.
+  El .register-banner baja a top:112px y el toast a top:96px (debajo del HUD).
+- El z-index del banner baja a 900 (antes 2550): estaba POR ENCIMA de los
+  modales (2000) e interceptaba los clics en las ✕ (p.ej. Ajustes).
+
+CAMBIO 2 — CONTROLES DE PARTIDA EN MÓVIL SIN SOLAPES (style.css):
+- .game-controls queda en 2 filas: fila 1 = ◀ Menú Principal | Reiniciar
+  (space-between, caben juntos: botones más pequeños 0.85em + flecha compacta),
+  fila 2 = .game-hud-inline (order 3, flex 1 0 100%) con el RELOJ y los TURULOS
+  centrados. .stats-bar acepta wrap (el label LUCIFER baja de línea si no cabe).
+- Nada se pisa: verificado a 390px con rects (timer/stats vs botones = 0 solapes).
+
+CAMBIO 3 — FARLOPÍN LEGIBLE ABAJO (style.css):
+- body padding-bottom móvil 90→170px (los botones flotantes de arriba: ranking
+  a bottom:118 + ~37px ≈ 155px). .hero-info-card margin-bottom 10→40px en móvil.
+- Al hacer scroll al máximo el mensaje de Farlopín se lee completo.
+
+CAMBIO 4 — CONFIRMACIONES COMO MODAL CENTRADO (index.html + style.css):
+- #confirm-bubble (cerrar sesión, crear cuenta, eliminar amigo...) ya NO es un
+  globo abajo: es un OVERLAY a pantalla completa (inset:0, z-index 2700, fondo
+  rgba(0,0,0,0.72)+blur) con .confirm-bubble-card centrado, icono ❗ grande,
+  mensaje en grande (white-space:pre-line) y botones ✅ Sí / ✕ No bien visibles.
+  Se añadió el wrapper .confirm-bubble-card en index.html (los ids se conservan,
+  el test del logout sigue pasando). Aplica igual en móvil y PC.
+
+CAMBIO 5 — VOLUMEN MÓVIL ARRIBA-IZQUIERDA + ⚙️ AJUSTES (index.html + game.js + css):
+- En móvil #volume-control-floating pasa de abajo-derecha a PÍLDORA COMPACTA
+  arriba-izquierda (top:88px, en el hueco entre el HUD y el título), horizontal
+  y con el slider pequeño. NO tapa el formulario ni el título (verificado).
+- body.user-modal-open (JS: openUserModal/hideUserModal) → en móvil el volumen
+  flotante se OCULTA mientras el modal de usuario está abierto: así el botón
+  "Generar lopero" queda 100% libre la primera vez.
+- NUEVO "⚙️ Ajustes" (#dd-settings) en el desplegable de usuario + modal
+  #settings-modal con Silenciar (#settings-mute-btn) y Volumen
+  (#settings-volume-slider). applyVolume() sincroniza AMBOS controles (flotante
+  y Ajustes); setVolumeFromInput()/toggleMute() compartidos (refactor). Se
+  cierra con ✕ o clic fuera (CLICK_OUTSIDE_MODALS).
+
+VERIFICADO: node --check en game.js/textos.js/server.js/test-lopa.js, 48 tests
+OK, y comprobaciones Playwright en 390x844 y 1280x800: HUD 2 filas (título no
+tapado), amuletos con scroll, desplegable a la derecha sin salirse, controles de
+partida sin solapes, Farlopín legible al máximo scroll, confirmación centrada a
+pantalla completa (dx=0,dy=0), Ajustes abre/cierra y volumen flotante oculto con
+el modal de usuario abierto.
+⚠️ REDEPLOY: subir index.html, game.js y style.css a Netlify.
+
+SESIÓN 20/08 (24ª-bis): BUG MEJORA DE LUCIFER VACÍA EN EL HUD
+-------------------------------------------------------------------------------
+- SÍNTOMA (usuario paul666/ed): en el HUD salía un LopAmuleto VACÍO con solo
+  un número "1" (sin icono ni nada). Era la MEJORA DE LUCIFER (level-lucifer,
+  comprada en la tienda).
+- CAUSAS (game.js):
+  1) renderHudAmulets() calculaba el nivel con el ternario ... : revLvl para
+     CUALQUIER upgrade que no fuera level-spiz/level-dinero → a level-lucifer
+     le ponía el nivel del Spiz Revelador (reveal-lvl) en vez de
+     levels.lucifer (número equivocado).
+  2) amuletInfo() NO tenía rama para 'level-lucifer' → devolvía null →
+     amuletVisual() pintaba '' → caja vacía con solo el badge de nivel.
+- FIX: rama level-lucifer en amuletInfo() (icono 🔥, nombre "Mejora de Lucifer",
+  desc "+50%/nivel sobre el ×2 base") y ternario corregido en renderHudAmulets()
+  (levels.lucifer en vez de revLvl).
+- VERIFICADO: node --check OK, 48 tests OK, y simulación con level-lucifer 1 +
+  reveal-lvl 1 → el HUD muestra 🔥 + "1" (antes: caja vacía con "1").
+
+
+SESIÓN 20/08 (25ª): VERSIÓN 2.3 CENTRALIZADA + preview-mobile.sh + VOLUMEN
+PLEGADO EN MÓVIL + LOPAMULETOS MÁS GRANDES + CANCIONES/IPOD + RELIQUIAS
+-------------------------------------------------------------------------------
+1) VERSIÓN 2.3 CENTRALIZADA:
+   - config.js: `window.APP_VERSION = '2.3'`. game.js lo usa en el título del
+     HUD (span #hud-title-version) y en document.title. El <title> y el h1 del
+     menú ya NO llevan versión: solo la barra superior la muestra.
+   - El h1 del menú principal es "Buscalopas" (sin versión), centrado
+     (text-align:center) y ya no queda tapado por la barra (padding-top móvil
+     126px). Para cambiar la versión: tocar SOLO config.js.
+2) dev/preview-mobile.sh (+ preview-mobile.js): previsualiza el juego en
+   FORMATO MÓVIL desde el PC. Levanta server.js en el puerto 3999 y abre
+   Chromium (Playwright, headless:false) con viewport 390x844 + táctil
+   (isMobile, hasTouch). Cierra el navegador → se apaga el servidor.
+3) VOLUMEN MÓVIL PLEGADO (CSS+JS): el volumen es un CÍRCULO pequeño con el
+   símbolo del sonido (top:96px, izquierda, en el hueco entre HUD y título; NO
+   tapa ni la barra ni "Buscalopas"). Primer toque → se DESPLIEGA (slider + %);
+   los siguientes toques silencian. Tocando fuera se vuelve a plegar. Ya NO se
+   oculta con el modal de usuario (está desde la primera vez, plegado no molesta
+   al "Generar lopero"). El control completo sigue en ⚙️ Ajustes.
+4) LOPAMULETOS MÁS GRANDES en el scroll móvil: .amu 28→36px, emoji 1.25em,
+   min-height de la fila 42px. Sigue con scroll horizontal.
+5) CANCIONES NUEVAS EN EL iPOD (IPOD_TRACKS + textos.js) — los mp3 YA están en
+   audio/: spiz.mp3, nhh.mp3, cousins.mp3, dueleamor.mp3, biggie.mp3, charlie.mp3:
+   - spizamarillo "Spiz Amarillo" (Manolo Kabezabolo): spizSaved>=10.
+   - nhh "NHH" (Ye): losses>=25.
+   - cousins "Cousins" (Ye): losses>=25 (tras NHH).
+   - dueleamor "Duele el Amor" (Alek Syntek): tener la reliquia Syntek.
+   - biggie "Hypnotize" (Notorious B.I.G.): tener la reliquia N Word.
+   - charlie "We Are Charlie Kirk" (Spalexma): tener la reliquia Charlie Kirk.
+   - checkIpodTrackUnlocks() AVISA con toast solo si se tiene el iPod (si se
+     cumple el hito sin iPod, avisa al comprarlo). Se llama en checkAmuletUnlocks,
+     buyIpod y onUserReady. statsData.ipodNotified[] guarda los ya avisados.
+6) RELIQUIAS NUEVAS EN LA TIENDA (kind 'relic', essential, SIEMPRE en stock):
+   - Syntek (400€, requiere iPod): da "Duele el Amor" y un BOTÓN ESPECIAL de
+     INMUNIDAD 3s. Amuleto togglable (⚙ Activar/Desactivar). El botón
+     (#relic-syntek-btn) solo aparece EN PARTIDA si syntek activo + owned y la
+     canción DUELE EL AMOR está puesta. Al pulsarlo → 3s de inmunidad
+     (SYNTEK_IMMUNITY_MS=3000): pisar una bolsa la revela desactivada
+     (.mine-immunity) SIN perder, SIN gastar Milagro/objetos y SIN contar
+     derrotas. La bolsa desactivada cuenta como satisfecha en modo turulos
+     (checkTuruloWin). Se puede mejorar más adelante (por ahora solo 3s).
+   - N Word (300€, requiere iPod): da "Hypnotize". Icono "N" (N.jpg llegará;
+     ahora una N grande en negrita).
+   - We Are Charlie Kirk (250€, requiere iPod): da la canción. GRATIS entre el
+     10 y el 16 de septiembre (charlieFreeNow → price 0, botón "🎁 GRATIS").
+     Sin el iPod salen BLOQUEADAS ("🔒 Requiere el iPod") pero VISIBLES.
+   - BOTÓN ESPECIAL = CATEGORÍA COMPARTIDA: dragon + syntek se apilan a la
+     derecha del tablero (positionRelicButton apila; en móvil, CSS los apila
+     arriba-izquierda). El syntek se oculta al salir al menú (updateRelicDragonButton
+     ahora también refresca el syntek; se llama también en showMenu).
+   - Fotos: syntek.jpg y N.jpg aún no están en img/amulets → fallback a emoji
+     (🎤 / N) con onerror. kirk.jpg y ye.jpg SÍ están.
+VERIFICADO: node --check OK, 48 tests OK, y flujos en Playwright: amuletos 36px
+con scroll (17 iconos), título "Buscalopas" + HUD "2.3", volumen plegado/desplegado
+en el hueco sin pisar barra ni título, tienda con reliquias (bloqueadas sin iPod,
+comprables con él, compra de Syntek desbloquea "Duele el Amor"), botón Syntek
+visible en partida con esa canción puesta, inmunidad (bolsa revelada sin boom, sin
+gastar Milagro, sin derrota; tras 3s vuelve a explotar), y preview-mobile.sh abre
+Chromium con la vista móvil.
+⚠️ REDEPLOY: subir config.js, index.html, game.js, style.css y textos.js a Netlify.
+
+
+SESIÓN 21/08 (26ª): REPASO MÓVIL 2 — iPOD MINIMIZABLE (SHUFFLE) + DINERO EN K/M +
+POPUP SPIZ SIN MOVER PANTALLA + PANEL DE LOPAMULETOS + GLOBOS EXCLUSIVOS
+--------------------------------------------------------------------------------
+Problemas del usuario (móvil, 390x844):
+1) El iPod tapa parte del tablero y molesta: quería poder minimizarlo y que al
+   entrar en el tablero venga minimizado por defecto (se puede desminimizar para
+   interactuar). Al minimizarse, idealmente que parezca un iPod shuffle.
+2) Los LopAmuletos del HUD móvil no convencen y la parte de arriba se ve muy
+   "espachurrada". Con la cuenta Lucifer (1.000.000€) el botón del dinero se
+   movía/cambiaba de tamaño. Propuesta: a partir de una cantidad mostrar en Ks.
+3) El popup de Spiz en móvil salía A LA DERECHA del tablero y DESPLAZABA la
+   pantalla para enfocar el globo (molestaba).
+4) Todo se ve "asfixiado" de cosas en móvil: idea de una flecha/▾ que abra un
+   panel/cuadrado con TODOS los LopAmuletos para verlos/activarlos/desactivarlos.
+5) Los globos de amigos/chat/ranking en móvil: al abrir uno se deben cerrar los
+   demás, y clicando fuera deberían cerrarse (convención móvil).
+6) El globo de VICTORIA en móvil es raro y ocupa muchísimo. El título de
+   "LopAmuletos conseguidos esta partida" debería ser de una línea, o
+   "Lopamuletos" + pequeño símbolo de nuevo (🆕).
+7) En 9x9 si cabe en la pantalla NO debería poder desplazarse. Los globos
+   deberían ser más pequeños y con poco texto, quizás encima del tablero o
+   arriba-izquierda (ej. Spiz = título "Spiz" + "+X segundos" debajo).
+
+CAMBIOS (game.js + style.css + index.html):
+1) iPOD MINIMIZABLE + SHUFFLE (móvil):
+   - Botón "—" (#ipod-minimize-btn, SOLO móvil) en el panel → minimiza.
+   - Al minimizar se oculta .ipod-device y aparece .ipod-shuffle: un iPod
+     shuffle CSS puro (clip + pantalla con la canción actual + botones
+     ⏮ ▶⏸ ⏭) que funciona sin desminimizar (selectIpodTrack/play/pause).
+     Clic en el cuerpo del shuffle → desminimiza.
+   - setIpodMinimized(v)/toggleIpodMinimized()/updateIpodShuffleTrack().
+   - startGame(): en móvil minimiza por defecto. showMenu(): lo expande.
+   - renderIpodPanel() conserva el estado minimizado.
+2) DINERO EN K/M: formatMoney(n) → <1000 número, >=1000 "X.XK", >=1M "X.XM".
+   Usado en updateWalletDisplay (HUD+menú), renderShop (#shop-wallet),
+   infoBest, ranking (lb-score), player-modal total y desglose del resultado
+   (result-earn-amount + Total). Así el botón 💰 no cambia de tamaño con 1M.
+3) POPUP DE SPIZ MÓVIL: los .spiz-popup-left/right ya NO son flex-siblings del
+   tablero (eso los ponía a la derecha y el .board-container con overflow-x:auto
+   se desplazaba): en móvil pasan a position:fixed arriba-izquierda (top:170px,
+   left:10px, ancho máx 240px), pequeños y con poco texto. showSpizPopup
+   acepta bonusTime y en móvil muestra "SPIZ" + "+Xs de tiempo" (esquemático);
+   se muestra en #spiz-popup-left y dura 4s. NADA desplaza la pantalla.
+4) PANEL DE TODOS LOS LOPAMULETOS (móvil):
+   - Botón "▾" (#hud-amulets-all) al final de la fila de amuletos (solo móvil,
+     con position:sticky dentro del scroll) → abre #hud-amulets-panel.
+   - El panel (fixed, bajo el HUD, z-index 2400, grid) lista TODOS los
+     LopAmuletos con estado 🟢/⚫/⚠️, cargas, progreso y nombre. Clic en un
+     amuleto → cierra el panel y abre el visor (activar/desactivar/info).
+     Clic fuera lo cierra. Se cierra al iniciar partida, volver al menú o
+     logout. renderHudAmuletsPanel()/toggleHudAmuletsPanel()/closeHudAmuletsPanel().
+   - Amuletos del HUD un poco MÁS GRANDES en móvil: 36→40px, gap 8→10,
+     min-height 42→46px (menos "espachurrado").
+5) GLOBOS EXCLUSIVOS (móvil): closeMobilePanels(except) cierra los demás al
+   abrir chat (toggleChatPanel), amigos (toggleRequestsDropdown) o ranking
+   (toggleRankingPanel). Document mousedown: si el clic NO está dentro de
+   chat/amigos/ranking/panel-amuletos ni sobre sus botones, los cierra todos.
+6) GLOBO DE VICTORIA MÓVIL: #result-modal más compacto (padding-top 14vh,
+   card máx 52vh, fuentes más pequeñas). Título de la sección de amuletos
+   pasa a "🔮 LopAmuletos 🆕" (una línea, con badge de nuevo).
+7) TABLERO 9x9 FIJO: applyBoardCellSize calcula la celda y updateBoardFit()
+   (llamado al final de renderBoard) añade .board-fits a .board-container si
+   el tablero cabe (overflow-x:hidden + centrado); si NO cabe (18x18) sigue
+   con overflow-x:auto (scroll). .board-container móvil ahora flex-wrap:wrap.
+   Verificado: 9x9 fits (sin scroll) y 18x18 scrollable.
+   - Toast móvil bajado (top:108px; lucifer 172px) para no pisar el HUD nuevo.
+VERIFICADO: node --check OK, 48 tests OK, y comprobaciones Playwright móvil
+(390x844) y desktop (1920x1080): iPod shuffle minimizado en tablero (menú
+expandido), dinero 1M en HUD/menú/tienda sin mover el botón, popup Spiz fijo
+arriba-izquierda sin desplazar el tablero, panel ▾ abre con 13 amuletos y abre
+el visor, exclusión mutua chat/amigos/ranking + cierre clicando fuera, resultado
+más pequeño con "🔮 LopAmuletos 🆕", 9x9 sin scroll y 18x18 con scroll.
+⚠️ REDEPLOY: subir index.html, game.js y style.css a Netlify.
+
+

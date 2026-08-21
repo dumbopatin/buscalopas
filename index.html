@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buscalopas</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header class="hud-header">
+        <div class="hud-title" id="hud-title">⚡ Buscalopas <span id="hud-title-version"></span></div>
+        <div id="hud-amulets" class="hud-amulets"></div>
+        <div class="hud-stats">
+            <div class="hud-user-wrap">
+                <button id="hud-user-btn" class="hud-user" type="button">
+                    <span id="hud-user">👤 —</span>
+                    <span class="hud-caret">▾</span>
+                </button>
+                <div id="user-dropdown" class="user-dropdown hidden">
+                    <button class="dd-item" data-action="name" id="dd-name" type="button">👤 Nombre de usuario</button>
+                    <button class="dd-item" data-action="password" id="dd-password" type="button">🔒 Crear contraseña</button>
+                    <button class="dd-item" data-action="friends" id="dd-friends" type="button">🤝 Amigos</button>
+                    <button class="dd-item" data-action="info" id="dd-info" type="button">ℹ️ Info</button>
+                    <button class="dd-item" data-action="lore" id="dd-lore" type="button">📜 Lore</button>
+                    <button class="dd-item" data-action="notes" id="dd-notes" type="button">📝 Notas e ideas</button>
+                    <button class="dd-item" data-action="settings" id="dd-settings" type="button">⚙️ Ajustes</button>
+                    <button class="dd-item dd-logout" data-action="logout" id="dd-logout" type="button">🚪 Cerrar sesión</button>
+                </div>
+            </div>
+            <span class="hud-money" id="hud-money-btn" title="Tienda Lopera">💰 <span id="hud-wallet">0</span>€</span>
+        </div>
+    </header>
+
+    <div id="hud-amulets-panel" class="hud-amulets-panel hidden">
+        <div class="hud-amulets-panel-head">🔮 Todos tus LopAmuletos</div>
+        <div id="hud-amulets-panel-list" class="hud-amulets-panel-list"></div>
+    </div>
+
+    <button id="hud-shop-btn" class="hud-shop-btn hidden" type="button" title="Tienda Lopera">
+        <span class="hud-shop-title">💰 DEALER</span>
+        <img src="img/amulets/dragon.jpg" alt="Dragon Narco" class="hud-shop-dragon">
+    </button>
+
+    <div id="register-banner" class="register-banner hidden">
+        <span id="register-banner-text">¡Regístrate! Guarda tus progresos, juega con tus amigos y analiza tus estadísticas.</span>
+        <button id="register-banner-close" class="register-banner-close" type="button" title="Cerrar">✕</button>
+    </div>
+
+    <aside id="ranking-panel" class="ranking-panel">
+        <div class="ranking-title">🏆 Ranking Lopero</div>
+        <ol id="ranking-list"><li class="ranking-empty">Cargando...</li></ol>
+    </aside>
+
+    <div id="ipod-panel" class="ipod-panel hidden">
+        <button id="ipod-minimize-btn" class="ipod-minimize-btn hidden" type="button" title="Minimizar iPod">—</button>
+        <div class="ipod-shuffle hidden" id="ipod-shuffle" title="Abrir iPod">
+            <div class="ipod-shuffle-body">
+                <div class="ipod-shuffle-clip"></div>
+                <div class="ipod-shuffle-screen">
+                    <div class="ipod-shuffle-track" id="ipod-shuffle-track">🎵 Cyber</div>
+                </div>
+                <div class="ipod-shuffle-controls">
+                    <button id="ipod-shuffle-prev" class="ipod-shuffle-btn" type="button" title="Anterior">⏮</button>
+                    <button id="ipod-shuffle-play" class="ipod-shuffle-btn" type="button" title="Play / Pausa">▶⏸</button>
+                    <button id="ipod-shuffle-next" class="ipod-shuffle-btn" type="button" title="Siguiente">⏭</button>
+                </div>
+            </div>
+        </div>
+        <div class="ipod-device">
+            <div class="ipod-screen" id="ipod-screen">
+                <div class="ipod-screen-head">
+                    <span class="ipod-screen-title">Buscalopas</span>
+                    <span class="ipod-screen-battery">🔋</span>
+                </div>
+                <div id="ipod-track-list" class="ipod-track-list"></div>
+                <div class="ipod-now-playing" id="ipod-now-playing"></div>
+            </div>
+            <div class="ipod-wheel">
+                <button id="ipod-wheel-menu" class="ipod-wheel-btn ipod-wheel-top" type="button">MENÚ</button>
+                <button id="ipod-wheel-play" class="ipod-wheel-btn ipod-wheel-ctr" type="button">▶⏸</button>
+                <button id="ipod-wheel-prev" class="ipod-wheel-btn ipod-wheel-left" type="button">⏮</button>
+                <button id="ipod-wheel-next" class="ipod-wheel-btn ipod-wheel-right" type="button">⏭</button>
+            </div>
+        </div>
+    </div>
+
+    <h1>Buscalopas</h1>
+    <div class="subtitle">Cyber-Lopera Mission</div>
+
+    <div id="menu-screen" class="screen">
+        <div class="menu-card">
+            
+            <div class="story-box">
+                Farlopín tiene jaleo este finde y quiere montarse una buena juerguecilia. Su objetivo es recopilar la mayor cantidad de bolsas para forzar la máquina al máximo. Pero cuidado, que si tropieza "accidentalmente" con ellas antes de tiempo, la habrá vuelto a liar entresemana.<br><br>
+                Piénsate bien cuánto te la quieres pegar y dale gas a la lopa.
+            </div>
+
+            <div class="stats-bar" style="margin-bottom: 0; justify-content: center;">
+                <div class="stat-item">👤 <span id="menu-user">—</span></div>
+                <div class="stat-item">💰 <span id="menu-wallet">0</span>€</div>
+            </div>
+
+            <div class="select-group">
+                <label for="game-mode">Actitud de la noche:</label>
+                <select id="game-mode">
+                    <option value="classic">⚡ Farlopín (Limpiar terreno)</option>
+                    <option value="turulos" disabled title="🔒 Próximamente">🍺 Borrachín (Guardar turulos) 🔒</option>
+                    <option value="hybrid" disabled title="🔒 Próximamente">🌀 Politoxiquín (Todo vale) 🔒</option>
+                </select>
+            </div>
+
+            <div class="select-group">
+                <label for="quantity">Cantidubi:</label>
+                <select id="quantity">
+                    <option value="9">Llaverazo (9x9)</option>
+                    <option value="14">Rayina (14x14)</option>
+                    <option value="18">Pollo (18x18)</option>
+                </select>
+            </div>
+
+            <div class="select-group">
+                <label for="quality">Calité:</label>
+                <select id="quality">
+                    <option value="0.06-180">Pure Peruvian (Fácil)</option>
+                    <option value="0.10-120">Javi Taxi (Media)</option>
+                    <option value="0.14-60">Chami CC (Difícil)</option>
+                </select>
+            </div>
+
+            <button id="start-btn" class="btn-start">¡DALE GAS!</button>
+            <button id="shop-btn" class="btn-secondary shop-btn hidden" type="button">🛒 Tienda Lopera</button>
+        </div>
+    </div>
+
+    <div id="game-screen" class="screen hidden">
+        <div class="game-controls">
+            <div class="game-controls-left">
+                <button id="back-menu-arrow" class="btn-secondary btn-menu-arrow" type="button" title="Volver al menú principal">◀</button>
+                <button id="back-menu-btn" class="btn-secondary" type="button">Menú Principal</button>
+            </div>
+
+            <div class="game-hud-inline">
+                <div class="timer-big">⏳ <span id="timer">00:00</span></div>
+                <div class="stats-bar" id="stats-bar">
+                    <div class="stat-item">
+                        <img src="img/turulo.jpg" alt="Turulo" class="stat-icon"> 
+                        <span id="turulo-count">0</span>
+                    </div>
+                    <div class="stat-item" id="lucifer-label" style="display: none;">🔥 LUCIFER 🔥</div>
+                </div>
+            </div>
+
+            <button id="reset-btn" class="btn-secondary" type="button">Reiniciar</button>
+        </div>
+
+        <div class="board-container">
+            <div id="spiz-popup-left" class="spiz-popup spiz-popup-left hidden"></div>
+            <div id="board"></div>
+            <div id="spiz-popup" class="spiz-popup spiz-popup-right hidden"></div>
+        </div>
+
+        <div class="hero-info-card">
+            <span class="hero-info-title" id="hero-display-name">Farlopín</span>
+            <span class="hero-info-goal" id="hero-display-goal">Misión: Limpia las casillas seguras.</span>
+        </div>
+
+        <div id="spiz-tutorial" class="spiz-tutorial hidden">
+            <div class="spiz-tutorial-card">
+                <img src="img/spiz.jpg" alt="Spiz" class="spiz-tutorial-img">
+                <div id="spiz-tutorial-text" class="spiz-tutorial-text"></div>
+                <button id="spiz-tutorial-ok" class="btn-start" type="button">✓ Entendido</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="volume-control-floating">
+        <button id="toggle-mute-btn" title="Silenciar / Activar">🔊</button>
+        <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="0.4" autocomplete="off">
+        <span id="volume-value">40%</span>
+    </div>
+
+    <audio id="bg-music" src="audio/musica_normal.mp3" loop preload="none"></audio>
+    <audio id="lucifer-music" src="audio/musica_lucifer.mp3" loop preload="none"></audio>
+
+    <div id="user-modal" class="modal hidden">
+        <div class="modal-card">
+            <button id="user-close-btn" class="modal-x hidden" type="button" title="Cerrar">✕</button>
+            <h2>¿Quién eres?</h2>
+            <p>Elige tu lopero para el ranking.</p>
+            <form id="login-form" autocomplete="on" class="modal-form">
+                <input type="text" id="user-input" maxlength="30" placeholder="Escribe o genera un lopero..." autocomplete="username" name="username">
+                <input type="password" id="name-pass-input" class="hidden" maxlength="40" placeholder="Contraseña de este lopero" autocomplete="current-password" name="password">
+                <p id="user-error" class="modal-error hidden"></p>
+                <div class="modal-actions">
+                    <button id="user-clear-btn" class="btn-secondary" type="button">🗑️ Borrar</button>
+                    <button id="user-gen-btn" class="btn-secondary" type="button">🎲 Generar lopero</button>
+                </div>
+                <button id="user-confirm-btn" class="btn-start" type="submit">ENTRAR</button>
+                <button id="user-register-btn" class="btn-secondary" type="button">🆕 Registrarse</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="pass-modal" class="modal hidden">
+        <div class="modal-card">
+            <button id="pass-close-btn" class="modal-x" type="button" title="Cerrar">✕</button>
+            <h2>🔒 Crear cuenta</h2>
+            <p>Elige tu <b>usuario</b> y tu <b>contraseña</b>. Todo tu progreso quedará vinculado a esta cuenta.</p>
+            <form id="pass-form" autocomplete="on" class="modal-form">
+                <input type="text" id="pass-user" maxlength="30" placeholder="Nombre de usuario" autocomplete="username" name="username">
+                <input type="password" id="pass-input" maxlength="40" placeholder="Contraseña" autocomplete="new-password" name="new-password">
+                <input type="password" id="pass-input2" maxlength="40" placeholder="Repite la contraseña" autocomplete="new-password" name="new-password2">
+                <p id="pass-error" class="modal-error hidden"></p>
+                <button id="pass-confirm-btn" class="btn-start" type="submit">Crear cuenta</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="info-modal" class="modal hidden">
+        <div class="modal-card">
+            <button id="info-close-btn" class="modal-x" title="Cerrar">✕</button>
+            <h2>ℹ️ Info</h2>
+            <p class="info-user" id="info-user">—</p>
+            <div class="info-stats">
+                <div class="info-row"><span>Partidas jugadas</span><span id="info-games">0</span></div>
+                <div class="info-row"><span>Victorias</span><span id="info-wins">0</span></div>
+                <div class="info-row"><span>Derrotas</span><span id="info-losses">0</span></div>
+                <div class="info-row"><span>% Victorias</span><span id="info-rate">0%</span></div>
+                <div class="info-row"><span>Mejor partida</span><span id="info-best">0€</span></div>
+                <div class="info-row info-clickable" id="info-spiz-row" title="Ver info del Spiz"><span><img src="img/spiz.jpg" alt="Spiz" class="stat-icon"> Spiz guardados</span><span id="info-spiz">0</span></div>
+                <div class="info-row"><span><img src="img/turulo.jpg" alt="Turulo" class="stat-icon"> Bolsas marcadas</span><span id="info-flags">0</span></div>
+                <div class="info-row info-clickable" id="info-lucifer-row" title="Ver info del modo Lucifer"><span>🔥 Veces en Lucifer</span><span id="info-lucifer">0</span></div>
+                <div class="info-row info-clickable" id="info-lucifer-time-row" title="Ver info del modo Lucifer"><span>🔥 Tiempo en Lucifer</span><span id="info-lucifer-time">0s</span></div>
+            </div>
+            <button id="info-more-btn" class="btn-secondary" type="button">Más estadísticas ▾</button>
+            <div id="info-more" class="info-more hidden">
+                <table class="info-table" id="info-table"></table>
+            </div>
+        </div>
+    </div>
+
+    <div id="shop-modal" class="modal hidden">
+        <div class="modal-card shop-card">
+            <button id="shop-close-btn" class="modal-x" title="Cerrar">✕</button>
+            <h2>🐉 Tienda del Dragon Narco</h2>
+            <p class="shop-dragon-talk">"Ojos azules, cartera llena. ¿Qué quieres probar hoy, compa?"</p>
+            <div class="shop-layout">
+                <div class="shop-stock">
+                    <p class="shop-today">🛒 Stock de hoy — <span id="shop-date"></span></p>
+                    <div id="shop-list" class="shop-list"></div>
+                </div>
+                <div class="shop-right">
+                    <div class="shop-wallet-big" title="Tu cartera">💰 <span id="shop-wallet">0</span>€</div>
+                    <div class="shop-dragon">
+                        <img src="img/dragon.jpg" alt="Dragon Narco de Ojos Azules">
+                    </div>
+                    <div id="shop-ipod-slot" class="shop-ipod-slot"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="confirm-bubble" class="confirm-bubble hidden">
+        <div class="confirm-bubble-card">
+            <div class="confirm-bubble-icon">❗</div>
+            <span id="confirm-bubble-msg" class="confirm-bubble-msg"></span>
+            <div class="confirm-bubble-actions">
+                <button id="confirm-bubble-yes" class="btn-secondary confirm-bubble-yes" type="button">✅ Sí</button>
+                <button id="confirm-bubble-no" class="btn-secondary confirm-bubble-no" type="button">✕ No</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast hidden">
+        <div class="toast-bubble">
+            <div class="toast-icon" id="toast-icon">💬</div>
+            <div class="toast-body">
+                <div class="toast-title" id="toast-title"></div>
+                <div class="toast-msg" id="toast-msg"></div>
+                <div class="toast-detail" id="toast-detail"></div>
+                <button class="toast-action hidden" id="toast-action" type="button"></button>
+            </div>
+            <button class="toast-close" id="toast-close" type="button" title="Cerrar">✕</button>
+        </div>
+        <div class="toast-progress" id="toast-progress"></div>
+    </div>
+
+    <div id="amulet-tooltip" class="amulet-tooltip hidden"></div>
+
+    <div id="amulet-modal" class="modal hidden">
+        <div class="modal-card amulet-card">
+            <button id="amulet-close-btn" class="modal-x" title="Cerrar">✕</button>
+            <h2 id="amulet-modal-title">🔮 LopAmuleto</h2>
+            <div class="amulet-sprite" id="amulet-modal-sprite"></div>
+            <div class="amulet-modal-name" id="amulet-modal-name">—</div>
+            <p class="amulet-modal-desc" id="amulet-modal-desc"></p>
+            <p class="amulet-modal-state" id="amulet-modal-state"></p>
+            <button id="amulet-toggle-btn" class="btn-secondary hidden" type="button">Activar</button>
+            <button id="amulet-ok-btn" class="btn-start" type="button">¡A la lopa!</button>
+        </div>
+    </div>
+
+    <div id="info-popup" class="modal info-popup hidden">
+        <div class="modal-card info-popup-card">
+            <div class="info-popup-img-wrap" id="info-popup-img-wrap"></div>
+            <h2 id="info-popup-title">—</h2>
+            <p id="info-popup-desc" class="info-popup-desc"></p>
+            <button id="info-popup-ok" class="btn-start" type="button">Entendido</button>
+        </div>
+    </div>
+
+    <div id="notice-modal" class="notice-modal hidden">
+        <div class="notice-card">
+            <div class="notice-icon" id="notice-icon">💬</div>
+            <h2 id="notice-title">—</h2>
+            <p id="notice-msg" class="notice-msg"></p>
+            <div id="notice-img-wrap" class="notice-img-wrap"></div>
+            <button id="notice-next-btn" class="btn-start" type="button">Siguiente ▶</button>
+        </div>
+    </div>
+
+    <div id="result-modal" class="modal modal-float hidden">
+        <div class="modal-card result-card">
+            <div class="result-drag-handle" title="Arrastra para mover">⠿</div>
+            <button id="result-close-x" class="result-close-x" title="Cerrar">✕</button>
+            <h2 id="result-title">—</h2>
+            <p id="result-subtitle" class="result-subtitle"></p>
+            <div id="result-extra" class="result-extra"></div>
+            <div class="result-section">💰 Desglose de ganancias</div>
+            <div id="result-earnings" class="result-earnings"></div>
+            <div id="result-amulets-wrap" class="result-amulets-wrap hidden">
+                <div class="result-section">🔮 LopAmuletos <span class="result-new-badge" title="Conseguidos esta partida">🆕</span></div>
+                <div id="result-amulets" class="result-amulets"></div>
+            </div>
+        </div>
+    </div>
+
+    <button id="result-reopen-btn" class="result-reopen-btn hidden" type="button" title="Ver resultado">💰</button>
+
+    <button id="ranking-toggle-btn" class="floating-btn floating-ranking" type="button" title="Ranking">🏆<span id="ranking-badge" class="chat-badge hidden">0</span></button>
+    <button id="requests-open-btn" class="floating-btn floating-requests hidden" type="button">🤝 Amigos<span id="requests-badge" class="chat-badge hidden">0</span></button>
+    <div id="requests-dropdown" class="requests-dropdown hidden">
+        <div class="requests-title">🤝 Amigos</div>
+        <div id="requests-list" class="requests-list"></div>
+        <div class="requests-add-row">
+            <input id="requests-add-input" maxlength="30" placeholder="Enviar solicitud..." autocomplete="off">
+            <button id="requests-add-btn" type="button">➕</button>
+        </div>
+    </div>
+    <button id="chat-open-btn" class="floating-btn floating-chat hidden" type="button">💬 Chat<span id="chat-badge" class="chat-badge hidden">0</span></button>
+
+    <button id="relic-dragon-btn" class="relic-dragon-btn hidden" type="button" title="Carta del Dragon Narco">
+        <img src="img/dragon.jpg" alt="Dragon Narco">
+        <span class="relic-tag">🐉 +50€</span>
+    </button>
+
+    <button id="relic-syntek-btn" class="relic-syntek-btn hidden" type="button" title="Duele el Amor — 3s de inmunidad">
+        <img src="img/amulets/syntek.jpg" alt="Syntek" onerror="this.style.display='none'">
+        <span class="relic-btn-emoji">🎤</span>
+        <span class="relic-tag">🛡️ 3s</span>
+    </button>
+
+    <div id="friends-modal" class="modal hidden">
+        <div class="modal-card friends-card">
+            <button id="friends-close-btn" class="modal-x" title="Cerrar">✕</button>
+            <h2>🤝 Amigos</h2>
+            <div class="friends-tabs">
+                <button class="friends-tab friends-tab-active" data-tab="list" type="button">Lista</button>
+                <button class="friends-tab" data-tab="requests" type="button">Solicitudes</button>
+                <button class="friends-tab" data-tab="add" type="button">Agregar</button>
+                <button class="friends-tab" data-tab="search" type="button">Buscar</button>
+            </div>
+            <div id="friends-list" class="friends-section friends-list-layout">
+                <div id="friends-nav" class="friends-nav"></div>
+                <div id="friends-detail" class="friends-detail hidden">
+                    <div class="friends-detail-name" id="friends-detail-name">—</div>
+                    <div class="friends-detail-actions">
+                        <button id="friends-detail-chat" class="btn-secondary" type="button">💬 Chat</button>
+                        <button id="friends-detail-info" class="btn-secondary" type="button">ℹ️ Info</button>
+                        <button id="friends-detail-remove" class="btn-secondary friends-detail-remove" type="button">🗑️ Eliminar</button>
+                    </div>
+                </div>
+            </div>
+            <div id="friends-requests" class="friends-section hidden"></div>
+            <div id="friends-add" class="friends-section hidden">
+                <div class="friends-add-row">
+                    <input id="friends-add-input" maxlength="30" placeholder="Nombre del lopero" autocomplete="off">
+                    <button id="friends-add-btn" class="btn-start" type="button">➕ Agregar</button>
+                </div>
+            </div>
+            <div id="friends-search" class="friends-section hidden">
+                <input id="friends-search-input" maxlength="30" placeholder="Buscar usuario..." autocomplete="off">
+                <div id="friends-search-results" class="friends-results"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="player-modal" class="modal hidden">
+        <div class="modal-card player-card">
+            <button id="player-close-btn" class="modal-x" title="Cerrar">✕</button>
+            <h2>👤 <span id="player-name">—</span></h2>
+            <div id="player-info" class="player-info"></div>
+            <button id="player-add-friend" class="btn-start" type="button">➕ Agregar como amigo</button>
+        </div>
+    </div>
+
+    <div id="chat-panel" class="chat-panel hidden">
+        <div class="chat-head">
+            <button id="chat-back-btn" class="chat-back hidden" type="button" title="Volver">‹</button>
+            <span id="chat-title" class="chat-title">💬 Chat</span>
+            <button id="chat-close-btn" class="chat-x" title="Cerrar">✕</button>
+        </div>
+        <div id="chat-requests" class="chat-requests hidden"></div>
+        <div id="chat-friends" class="chat-convs"></div>
+        <div id="chat-view" class="chat-view hidden">
+            <div id="chat-messages" class="chat-messages"></div>
+            <div class="chat-input-row">
+                <input id="chat-input" maxlength="500" placeholder="Escribe un mensaje..." autocomplete="off">
+                <button id="chat-send-btn" type="button">➤</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="notes-modal" class="modal hidden">
+        <div class="modal-card notes-card">
+            <button id="notes-close-btn" class="modal-x" title="Cerrar">✕</button>
+            <h2>📝 Notas e ideas</h2>
+            <p>Apuntes que persisten entre sesiones. Guarda aquí tus proyectos futuros.</p>
+            <textarea id="notes-textarea" maxlength="8000" placeholder="Escribe aquí tus ideas, plan de futuro (multijugador, playlists, lobbies, chats...), etc." autocomplete="off"></textarea>
+            <p id="notes-status" class="notes-status"></p>
+            <button id="notes-save-btn" class="btn-start" type="button">💾 Guardar notas</button>
+        </div>
+    </div>
+
+    <div id="settings-modal" class="modal hidden">
+        <div class="modal-card settings-card">
+            <button id="settings-close-btn" class="modal-x" title="Cerrar">✕</button>
+            <h2>⚙️ Ajustes</h2>
+            <div class="settings-row">
+                <span class="settings-label">🔇 Silenciar</span>
+                <button id="settings-mute-btn" class="btn-secondary settings-mute-btn" type="button">🔊</button>
+            </div>
+            <div class="settings-row">
+                <span class="settings-label">🔉 Volumen</span>
+                <input type="range" id="settings-volume-slider" min="0" max="1" step="0.05" value="0.4" autocomplete="off">
+                <span id="settings-volume-value" class="settings-volume-value">40%</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="vendor/supabase.min.js"></script>
+    <script src="config.js"></script>
+    <script src="textos.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "name": "buscalopas",
+  "version": "1.0.0",
+  "description": "Buscalopas 2.0 - servidor del juego con ranking de jugadores",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test-lopa": "node test-lopa.js",
+    "balance": "node balance-check.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.62.1"
+  }
+}

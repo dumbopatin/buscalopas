@@ -1,0 +1,4394 @@
+:root {
+    color-scheme: dark;
+    --bg-color: #050505;
+    --card-bg: rgba(22, 22, 30, 0.85);
+    --accent-pink: #ff70a6;
+    --accent-purple: #7b2cbf;
+    --accent-cyan: #4cc9f0;
+    --text-main: #fffffe;
+    --text-dim: #a7a9be;
+    --neon-glow: 0 0 15px rgba(255, 112, 166, 0.5);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    font-size: 18px;
+}
+
+body {
+    font-family: 'Rajdhani', sans-serif;
+    background-color: var(--bg-color);
+    background-image: 
+        radial-gradient(circle at 20% 30%, rgba(123, 44, 191, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 80% 70%, rgba(255, 112, 166, 0.1) 0%, transparent 40%);
+    color: var(--text-main);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 90px 20px 20px;
+    overflow-x: hidden;
+}
+
+h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 3.4em;
+    text-transform: uppercase;
+    letter-spacing: 4px;
+    margin-bottom: 5px;
+    background: linear-gradient(to bottom, var(--accent-pink), var(--accent-purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 10px rgba(255, 112, 166, 0.3));
+}
+
+.subtitle {
+    color: var(--accent-cyan);
+    font-weight: 500;
+    letter-spacing: 2px;
+    margin-bottom: 25px;
+    text-transform: uppercase;
+    font-size: 1em;
+}
+
+/* --- PANTALLAS --- */
+.screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* --- TARJETA DE MENÚ --- */
+.menu-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 40px 45px;
+    border-radius: 24px;
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    width: 480px;
+    max-width: 95%;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.story-box {
+    background: rgba(0, 0, 0, 0.3);
+    border-left: 4px solid var(--accent-pink);
+    padding: 15px 20px;
+    border-radius: 8px;
+    color: var(--text-dim);
+    font-size: 0.95em;
+    line-height: 1.5;
+    text-align: left;
+}
+
+/* --- DESPLEGABLES / SELECTS REDISEÑADOS --- */
+.select-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    position: relative;
+}
+
+label {
+    font-size: 0.85em;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--accent-purple);
+    font-weight: 700;
+}
+
+select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-color: #0f0e17;
+    background-image: url("data:image/svg+xml;utf8,<svg fill='%23ff70a6' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 18px;
+    color: var(--text-main);
+    border: 1px solid var(--accent-purple);
+    padding: 14px 42px 14px 16px;
+    border-radius: 12px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.05em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    outline: none;
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+select:hover, select:focus {
+    border-color: var(--accent-pink);
+    box-shadow: 0 0 15px rgba(255, 112, 166, 0.3), inset 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+select option {
+    background-color: #12111d;
+    color: var(--text-main);
+    padding: 12px;
+    font-size: 1em;
+}
+
+/* --- BOTONES --- */
+.btn-start {
+    background: linear-gradient(135deg, var(--accent-pink), var(--accent-purple));
+    color: white;
+    border: none;
+    padding: 18px;
+    border-radius: 12px;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: 1.15em;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: var(--transition);
+    box-shadow: var(--neon-glow);
+    margin-top: 10px;
+}
+
+.btn-start:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 25px rgba(255, 112, 166, 0.6);
+}
+
+/* --- PANTALLA DE JUEGO --- */
+.game-controls {
+    width: 100%;
+    max-width: 1000px;
+    margin-bottom: 44px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.game-controls-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.game-controls .btn-secondary {
+    font-size: 1.4em;
+    padding: 18px 34px;
+    border-radius: 14px;
+    letter-spacing: 1px;
+    font-weight: 700;
+    border: 2px solid var(--accent-purple);
+    background: rgba(123, 44, 191, 0.15);
+    box-shadow: 0 0 20px rgba(123, 44, 191, 0.3);
+}
+
+.game-controls .btn-secondary:hover {
+    background: rgba(123, 44, 191, 0.32);
+    border-color: var(--accent-pink);
+    box-shadow: 0 0 32px rgba(255, 112, 166, 0.5);
+    transform: translateY(-2px);
+}
+
+.game-controls .btn-menu-arrow {
+    padding: 18px 24px;
+    font-size: 1.7em;
+    line-height: 1;
+}
+
+.game-controls .btn-reset-end {
+    border-color: #f72585;
+    background: rgba(247, 37, 133, 0.28);
+    box-shadow: 0 0 24px rgba(247, 37, 133, 0.55);
+    animation: resetPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes resetPulse {
+    0%, 100% { box-shadow: 0 0 12px rgba(247, 37, 133, 0.4); }
+    50% { box-shadow: 0 0 34px rgba(247, 37, 133, 0.95); }
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-main);
+    border: 1px solid var(--glass-border);
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-family: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: var(--accent-cyan);
+}
+
+.hero-info-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--accent-pink);
+    padding: 14px 26px;
+    border-radius: 14px;
+    box-shadow: var(--neon-glow);
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    min-width: 0;
+    margin-top: 40px;
+    max-width: 660px;
+}
+
+.hero-info-title {
+    color: var(--accent-pink);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.35em;
+    white-space: nowrap;
+}
+
+.hero-info-goal {
+    color: var(--text-dim);
+    font-size: 1.05em;
+    line-height: 1.3;
+}
+
+.game-hud-inline {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    min-width: 0;
+}
+
+.timer-big {
+    background: var(--card-bg);
+    border: 1px solid var(--accent-cyan);
+    border-radius: 50px;
+    padding: 12px 30px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 2.2em;
+    font-weight: 700;
+    color: var(--accent-cyan);
+    box-shadow: 0 0 15px rgba(76, 201, 240, 0.3);
+    white-space: nowrap;
+    letter-spacing: 1px;
+}
+
+#game-screen.lucifer-active .timer-big {
+    background: var(--accent-pink);
+    color: #000;
+    border-color: #fff;
+    animation: pulse 0.6s infinite alternate;
+}
+
+.stats-bar {
+    display: flex;
+    gap: 20px;
+    background: var(--card-bg);
+    padding: 13px 30px;
+    border-radius: 50px;
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+}
+
+.stats-bar.lucifer-mode {
+    background: var(--accent-pink);
+    color: #000;
+    border-color: #fff;
+    animation: pulse 0.6s infinite alternate;
+}
+
+@keyframes pulse {
+    from { transform: scale(1); box-shadow: 0 0 10px var(--accent-pink); }
+    to { transform: scale(1.05); box-shadow: 0 0 25px var(--accent-pink); }
+}
+
+.stat-item {
+    font-weight: 700;
+    font-size: 1.5em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* TEMBLOR MODO LUCIFER */
+@keyframes shake {
+    0% { transform: translate(1px, 1px) rotate(0deg); }
+    20% { transform: translate(-2px, 0px) rotate(-0.5deg); }
+    40% { transform: translate(1px, -1px) rotate(0.5deg); }
+    60% { transform: translate(-2px, 1px) rotate(0deg); }
+    80% { transform: translate(2px, 1px) rotate(-0.5deg); }
+    100% { transform: translate(1px, -2px) rotate(0.5deg); }
+}
+
+.lucifer-active {
+    animation: shake 0.2s infinite;
+}
+
+/* --- TABLERO DE JUEGO --- */
+.board-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+}
+
+#board {
+    display: grid;
+    gap: 6px;
+    background: #0f0e17;
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 0 40px rgba(0,0,0,0.5);
+    user-select: none;
+}
+
+.cell {
+    width: var(--cell-size, 52px);
+    height: var(--cell-size, 52px);
+    background: #1b1a27;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.4em;
+    color: var(--text-main);
+    cursor: pointer;
+    transition: var(--transition);
+    user-select: none;
+    -webkit-user-select: none;     /* Evita selección de texto en iOS/Safari */
+    -webkit-touch-callout: none;   /* Evita el menú de "Copiar/Guardar" en iOS */
+    touch-action: manipulation;    /* Mejora la respuesta táctil en Android/iOS */
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    overflow: hidden;
+}
+
+.cell:hover:not(.revealed) {
+    background: #2b2a40;
+    transform: scale(1.08);
+    z-index: 2;
+    border-color: var(--accent-cyan);
+}
+
+.cell.revealed {
+    background: #141320;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    cursor: default;
+}
+
+.cell.mine {
+    background: var(--accent-pink);
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+}
+
+/* Bolsa desactivada por el LopAmuleto Milagro: se ve, pero "neutralizada" */
+.cell.mine-disarmed {
+    background: #1b2a1e;
+    border: 1px solid rgba(76, 201, 240, 0.55);
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.cell.mine-disarmed .cell-img {
+    opacity: 0.55;
+    filter: saturate(0.4) brightness(1.2);
+}
+
+.cell.turulo {
+    background: #2b2145;
+    border: 1px solid var(--accent-purple);
+}
+
+.cell.spiz {
+    background: #123a4a;
+    border: 1px solid var(--accent-cyan);
+}
+
+/* Celda del Spiz revelada por el Amuleto del Vidente */
+.cell.vidente-spiz {
+    background: #0e2b38;
+    border: 2px solid var(--accent-cyan);
+    box-shadow: 0 0 12px rgba(76, 201, 240, 0.6);
+    animation: videntePulse 1.2s infinite alternate;
+}
+
+@keyframes videntePulse {
+    from { box-shadow: 0 0 8px rgba(76, 201, 240, 0.4); }
+    to { box-shadow: 0 0 18px rgba(76, 201, 240, 0.9); }
+}
+
+.cell-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 4px;
+    display: block;
+}
+
+.c-1 { color: var(--accent-cyan); }
+.c-2 { color: #f72585; }
+.c-3 { color: var(--accent-purple); }
+.c-4 { color: #4895ef; }
+.c-5 { color: #ff9e00; }
+
+/* --- POPUPS FLOTANTES (AMBOS LADOS) --- */
+.spiz-popup {
+    position: absolute;
+    width: 240px;
+    background: var(--card-bg);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    padding: 16px;
+    border-radius: 12px;
+    font-size: 0.88em;
+    font-weight: 600;
+    color: var(--text-main);
+    box-shadow: 0 0 25px rgba(255, 112, 166, 0.4);
+    z-index: 100;
+    line-height: 1.3;
+}
+
+.spiz-popup-word {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.9em;
+    font-weight: 700;
+    font-style: italic;
+    text-decoration: underline;
+    text-decoration-thickness: 3px;
+    text-underline-offset: 4px;
+    color: var(--accent-cyan);
+    text-shadow: 0 0 12px rgba(76, 201, 240, 0.7);
+    margin-bottom: 6px;
+    letter-spacing: 3px;
+}
+
+.spiz-popup-body {
+    line-height: 1.35;
+}
+
+.spiz-popup-right {
+    left: 103%;
+    border-left: 5px solid var(--accent-pink);
+}
+
+.spiz-popup-left {
+    right: 103%;
+    border-right: 5px solid var(--accent-pink);
+}
+
+.spiz-popup.spiz-cyan {
+    border-left: 5px solid var(--accent-cyan);
+    box-shadow: 0 0 30px rgba(76, 201, 240, 0.5);
+}
+
+.spiz-popup.spiz-cyan b {
+    color: var(--accent-cyan);
+}
+
+/* --- TUTORIAL DEL SPIZ (1ª vez que lo pulsas) --- */
+.spiz-tutorial {
+    position: fixed;
+    inset: 0;
+    z-index: 2400;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.spiz-tutorial-card {
+    pointer-events: auto;
+    width: 440px;
+    max-width: 92vw;
+    background: var(--card-bg);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 2px solid var(--accent-cyan);
+    border-radius: 16px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    text-align: center;
+    box-shadow: 0 0 40px rgba(76, 201, 240, 0.55), 0 20px 50px rgba(0, 0, 0, 0.6);
+}
+
+.spiz-tutorial-img {
+    width: 170px;
+    height: 170px;
+    object-fit: contain;
+    background: #0a0a12;
+    border-radius: 12px;
+    border: 3px solid var(--accent-cyan);
+    box-shadow: 0 0 25px rgba(76, 201, 240, 0.7);
+    padding: 6px;
+}
+
+.spiz-tutorial-text {
+    font-size: 1.1em;
+    line-height: 1.5;
+    color: var(--text-main);
+}
+
+.spiz-tutorial-text strong {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--accent-cyan);
+    font-size: 1.15em;
+}
+
+.spiz-tutorial-text .spiz-save {
+    color: var(--accent-pink);
+    text-shadow: 0 0 8px rgba(255, 112, 166, 0.6);
+}
+
+.spiz-tutorial-card .btn-start {
+    margin-top: 4px;
+    width: 100%;
+}
+.stat-icon {
+    width: 26px;
+    height: 26px;
+    object-fit: cover;
+    border-radius: 4px;
+    vertical-align: middle;
+}
+/* CONTROL DE VOLUMEN FLOTANTE */
+#volume-control-floating {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(15, 14, 23, 0.9);
+    border: 1px solid var(--accent-purple);
+    box-shadow: 0 0 15px rgba(123, 44, 191, 0.5);
+    border-radius: 30px;
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 9999;
+    backdrop-filter: blur(5px);
+}
+
+#volume-control-floating button {
+    background: none;
+    border: none;
+    font-size: 1.3em;
+    cursor: pointer;
+    line-height: 1;
+    transition: transform 0.1s ease;
+}
+
+#volume-control-floating button:hover {
+    transform: scale(1.2);
+}
+
+#volume-control-floating input[type="range"] {
+    accent-color: var(--accent-pink);
+    width: 80px;
+    cursor: pointer;
+}
+
+#volume-value {
+    font-size: 0.85em;
+    color: var(--accent-pink);
+    font-weight: bold;
+    min-width: 35px;
+    text-align: right;
+}
+
+/* El volumen SIEMPRE queda abajo-derecha; el iPod se coloca por encima
+   de él (bottom más alto) para que nunca se pisen. */
+
+/* --- BARRA SUPERIOR (HUD) --- */
+.hud-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 2600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 34px;
+    background: rgba(10, 10, 16, 0.92);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--accent-purple);
+    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.5);
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.hud-title {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: 1.1em;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    background: linear-gradient(to bottom, var(--accent-pink), var(--accent-purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 8px rgba(255, 112, 166, 0.3));
+    cursor: pointer;
+    user-select: none;
+}
+
+.hud-title.title-clickable {
+    filter: drop-shadow(0 0 16px rgba(255, 112, 166, 0.7));
+}
+
+.hud-stats {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    font-weight: 700;
+    font-size: 1.05em;
+}
+
+/* --- BOTÓN DE LA TIENDA (DEALER) FUERA DE LA BARRA, ENTRE BARRA Y RANKING ---
+   (misma posición en menú y durante la partida: no se mueve) */
+.hud-shop-btn {
+    position: fixed;
+    right: 24px;
+    top: 130px;
+    z-index: 600;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    width: 320px;
+    padding: 22px 26px 26px;
+    background: linear-gradient(160deg, rgba(123, 44, 191, 0.5), rgba(255, 112, 166, 0.28));
+    border: 2px solid var(--accent-pink);
+    border-radius: 18px;
+    cursor: pointer;
+    box-shadow: 0 0 25px rgba(255, 112, 166, 0.45), 0 14px 40px rgba(0, 0, 0, 0.6);
+    transition: var(--transition);
+}
+
+.hud-shop-btn:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 0 40px rgba(255, 112, 166, 0.7), 0 16px 45px rgba(0, 0, 0, 0.65);
+    border-color: var(--accent-cyan);
+}
+
+.hud-shop-title {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: 2.2em;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent-pink);
+    text-shadow: 0 0 12px rgba(255, 112, 166, 0.75);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.hud-shop-dragon {
+    max-height: 200px;
+    width: auto;
+    object-fit: contain;
+    border-radius: 10px;
+    border: 2px solid var(--accent-purple);
+    box-shadow: 0 0 18px rgba(123, 44, 191, 0.65);
+}
+
+/* --- LOPAMULETOS EN LA BARRA SUPERIOR --- */
+.hud-amulets {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    flex-wrap: wrap;
+    min-height: 48px;
+    padding: 0 8px;
+}
+
+.amu {
+    position: relative;
+    width: 46px;
+    height: 46px;
+    background: rgba(123, 44, 191, 0.18);
+    border: 1px solid var(--accent-purple);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3em;
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(123, 44, 191, 0.35);
+    transition: var(--transition);
+}
+
+.amu:hover {
+    transform: scale(1.15);
+    box-shadow: 0 0 16px rgba(255, 112, 166, 0.5);
+    border-color: var(--accent-pink);
+}
+
+.amu-charge {
+    position: absolute;
+    bottom: -5px;
+    right: -7px;
+    background: var(--accent-pink);
+    color: #000;
+    font-size: 0.65em;
+    font-weight: 700;
+    border-radius: 8px;
+    padding: 1px 5px;
+    line-height: 1.2;
+}
+
+.amu-upgrade {
+    width: auto;
+    border-radius: 8px;
+    padding: 0 10px;
+    font-size: 1.05em;
+    font-weight: 700;
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+    background: rgba(76, 201, 240, 0.1);
+}
+
+.amu-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    display: block;
+}
+
+.amu-emoji {
+    font-size: 1.3em;
+    line-height: 1;
+}
+
+.amu-lvl {
+    font-size: 0.9em;
+    margin-left: 3px;
+}
+
+.amu-negative {
+    border-color: #f72585;
+    background: rgba(247, 37, 133, 0.15);
+    box-shadow: 0 0 10px rgba(247, 37, 133, 0.4);
+}
+
+.amu-negative:hover {
+    border-color: #f72585;
+    box-shadow: 0 0 16px rgba(247, 37, 133, 0.6);
+}
+
+.amu-inactive {
+    filter: grayscale(1) brightness(0.55);
+    opacity: 0.75;
+    box-shadow: none;
+    background: rgba(90, 90, 100, 0.15);
+    border-color: rgba(167, 169, 190, 0.4);
+}
+
+.amu-inactive:hover {
+    filter: grayscale(0.6) brightness(0.85);
+    box-shadow: 0 0 10px rgba(255, 112, 166, 0.3);
+}
+
+.amu-prog {
+    position: absolute;
+    bottom: -6px;
+    left: -2px;
+    background: #0f0e17;
+    color: var(--accent-cyan);
+    border: 1px solid var(--accent-cyan);
+    font-size: 0.58em;
+    font-weight: 700;
+    border-radius: 8px;
+    padding: 0px 4px;
+    line-height: 1.3;
+    white-space: nowrap;
+}
+
+/* --- Botón "ver todos" (▾) + panel de TODOS los LopAmuletos (móvil) --- */
+.hud-amulets-all {
+    flex-shrink: 0;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 1px solid var(--accent-pink);
+    background: rgba(255, 112, 166, 0.12);
+    color: var(--accent-pink);
+    font-size: 1em;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+}
+
+.hud-amulets-all:hover {
+    transform: scale(1.1);
+    background: rgba(255, 112, 166, 0.25);
+}
+
+.hud-amulets-panel {
+    position: fixed;
+    top: 118px;
+    left: 10px;
+    right: 10px;
+    z-index: 2400;
+    max-height: min(60vh, 480px);
+    background: rgba(10, 10, 18, 0.97);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--accent-purple);
+    border-radius: 16px;
+    box-shadow: 0 16px 50px rgba(0, 0, 0, 0.7), 0 0 30px rgba(123, 44, 191, 0.25);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.hud-amulets-panel-head {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.95em;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--accent-pink);
+    padding: 12px 16px;
+    border-bottom: 1px dashed var(--glass-border);
+}
+
+.hud-amulets-panel-list {
+    padding: 12px;
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(86px, 1fr));
+    gap: 10px;
+}
+
+.hap-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 10px 6px 8px;
+    border: 1px solid var(--accent-purple);
+    background: rgba(123, 44, 191, 0.12);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.hap-item:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent-pink);
+    box-shadow: 0 0 14px rgba(255, 112, 166, 0.4);
+}
+
+.hap-item.hap-negative {
+    border-color: #f72585;
+    background: rgba(247, 37, 133, 0.1);
+}
+
+.hap-item.hap-inactive {
+    filter: grayscale(1) brightness(0.7);
+    opacity: 0.75;
+    border-color: rgba(167, 169, 190, 0.4);
+}
+
+.hap-item .amu-img,
+.hap-item .amu-emoji {
+    width: 34px;
+    height: 34px;
+    font-size: 1.5em;
+    line-height: 1;
+    object-fit: cover;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.hap-name {
+    font-size: 0.72em;
+    font-weight: 700;
+    color: var(--text-main);
+    text-align: center;
+    line-height: 1.15;
+    white-space: normal;
+    word-break: break-word;
+}
+
+.hap-charge,
+.hap-lvl {
+    position: absolute;
+    bottom: -6px;
+    right: -4px;
+    background: var(--accent-pink);
+    color: #000;
+    font-size: 0.6em;
+    font-weight: 700;
+    border-radius: 8px;
+    padding: 1px 5px;
+}
+
+.hap-prog {
+    position: absolute;
+    bottom: -6px;
+    left: -2px;
+    background: #0f0e17;
+    color: var(--accent-cyan);
+    border: 1px solid var(--accent-cyan);
+    font-size: 0.55em;
+    font-weight: 700;
+    border-radius: 8px;
+    padding: 0 4px;
+    white-space: nowrap;
+}
+
+.amulet-tip-prog {
+    margin-top: 4px;
+    color: var(--accent-cyan);
+    font-weight: 600;
+    border-top: 1px dashed rgba(255, 255, 255, 0.15);
+    padding-top: 4px;
+}
+
+/* --- TOOLTIP DE AMULETOS --- */
+.amulet-tooltip {
+    position: fixed;
+    z-index: 4000;
+    pointer-events: none;
+    background: rgba(15, 14, 23, 0.97);
+    border: 1px solid var(--accent-pink);
+    border-radius: 12px;
+    padding: 12px 14px;
+    max-width: 250px;
+    box-shadow: 0 0 20px rgba(255, 112, 166, 0.4);
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    animation: fadeIn 0.15s ease-out;
+}
+
+.amulet-tip-img {
+    width: 44px;
+    height: 44px;
+    object-fit: cover;
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+
+.amulet-tip-emoji {
+    font-size: 1.9em;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.amulet-tip-name {
+    font-family: 'Orbitron', sans-serif;
+    color: var(--accent-pink);
+    font-size: 0.82em;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-bottom: 3px;
+}
+
+.amulet-tip-desc {
+    color: var(--text-dim);
+    font-size: 0.9em;
+    line-height: 1.3;
+}
+
+/* --- VISOR DE AMULETOS --- */
+#amulet-modal {
+    z-index: 2500;
+}
+
+.amulet-card {
+    width: 340px;
+}
+
+.amulet-sprite {
+    min-height: 96px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.amulet-modal-img {
+    width: 96px;
+    height: 96px;
+    object-fit: cover;
+    border-radius: 16px;
+    box-shadow: 0 0 20px rgba(255, 112, 166, 0.4);
+    border: 1px solid var(--accent-pink);
+}
+
+.amulet-modal-emoji {
+    font-size: 4.5em;
+    line-height: 1;
+}
+
+.amulet-modal-name {
+    font-family: 'Orbitron', sans-serif;
+    color: var(--text-main);
+    font-size: 1.05em;
+    letter-spacing: 0.5px;
+}
+
+.amulet-modal-desc {
+    color: var(--text-dim);
+    font-size: 0.95em;
+    line-height: 1.4;
+}
+
+.amulet-modal-state {
+    color: var(--accent-cyan);
+    font-weight: 700;
+    font-size: 0.9em;
+}
+
+/* --- NOTAS E IDEAS --- */
+.notes-card {
+    width: 480px;
+    max-width: 92%;
+}
+
+.notes-card p {
+    color: var(--text-dim);
+    font-size: 0.92em;
+    line-height: 1.4;
+}
+
+#notes-textarea {
+    background: #0f0e17;
+    border: 1px solid var(--accent-purple);
+    color: var(--text-main);
+    padding: 14px 16px;
+    border-radius: 10px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.05em;
+    line-height: 1.5;
+    min-height: 220px;
+    resize: vertical;
+    outline: none;
+    text-align: left;
+    transition: var(--transition);
+}
+
+#notes-textarea:focus {
+    border-color: var(--accent-pink);
+    box-shadow: 0 0 15px rgba(255, 112, 166, 0.3);
+}
+
+.notes-status {
+    min-height: 1.2em;
+    font-size: 0.85em;
+    color: var(--accent-cyan);
+    font-weight: 600;
+}
+
+.hud-user {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--accent-cyan);
+    cursor: pointer;
+    padding: 11px 20px;
+    border: 1px solid rgba(76, 201, 240, 0.4);
+    border-radius: 24px;
+    background: rgba(76, 201, 240, 0.08);
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 1.2em;
+    letter-spacing: 0.3px;
+    transition: var(--transition);
+}
+
+#hud-user {
+    display: inline-block;
+    min-width: 8ch;
+    text-align: center;
+}
+
+.hud-user:hover {
+    background: rgba(76, 201, 240, 0.2);
+}
+
+.hud-user-wrap {
+    position: relative;
+}
+
+.hud-caret {
+    font-size: 0.75em;
+    opacity: 0.8;
+}
+
+.user-dropdown {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    min-width: 260px;
+    background: #0f0e17;
+    border: 1px solid var(--accent-purple);
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    padding: 8px;
+    z-index: 2700;
+    display: flex;
+    flex-direction: column;
+}
+
+.dd-item {
+    background: none;
+    border: none;
+    color: var(--text-main);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.25em;
+    font-weight: 600;
+    text-align: left;
+    padding: 13px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: var(--transition);
+    white-space: nowrap;
+}
+
+.dd-item:hover {
+    background: rgba(255, 112, 166, 0.12);
+}
+
+.dd-logout {
+    color: #f72585;
+    border-top: 1px solid rgba(247, 37, 133, 0.3);
+    margin-top: 4px;
+    padding-top: 13px;
+}
+
+.dd-logout:hover {
+    background: rgba(247, 37, 133, 0.2);
+    color: #fff;
+}
+
+/* --- MODAL DE AJUSTES --- */
+.settings-card {
+    width: 380px;
+}
+
+.settings-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 4px;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.08);
+}
+
+.settings-row:last-child {
+    border-bottom: none;
+}
+
+.settings-label {
+    flex: 1;
+    font-size: 1.05em;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.settings-mute-btn {
+    min-width: 64px;
+    font-size: 1.2em;
+    padding: 10px 18px;
+}
+
+.settings-row input[type="range"] {
+    flex: 1;
+    accent-color: var(--accent-pink);
+    cursor: pointer;
+    min-width: 0;
+}
+
+.settings-volume-value {
+    font-size: 1em;
+    color: var(--accent-pink);
+    font-weight: bold;
+    min-width: 44px;
+    text-align: right;
+}
+
+.hud-money {
+    color: var(--accent-pink);
+    text-shadow: var(--neon-glow);
+    font-size: 1.1em;
+    border: 1px solid transparent;
+    border-radius: 20px;
+    padding: 7px 14px;
+    transition: var(--transition);
+    user-select: none;
+}
+
+.hud-money-shop {
+    cursor: pointer;
+    border-color: rgba(255, 112, 166, 0.4);
+    background: rgba(255, 112, 166, 0.08);
+}
+
+.hud-money-shop:hover {
+    background: rgba(255, 112, 166, 0.2);
+    box-shadow: var(--neon-glow);
+}
+
+/* --- MODAL DE USUARIO --- */
+.modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 140px 12px 16px;
+    overflow-y: auto;
+    z-index: 2000;
+}
+
+.modal-card {
+    position: relative;
+    background: var(--card-bg);
+    border: 1px solid var(--accent-pink);
+    border-radius: 18px;
+    padding: 32px 36px;
+    width: 380px;
+    max-width: 92%;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    box-shadow: var(--neon-glow);
+    text-align: center;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.modal-form {
+    display: contents;
+}
+
+.modal-x {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 1.4em;
+    cursor: pointer;
+    line-height: 1;
+    transition: var(--transition);
+}
+
+.modal-x:hover {
+    color: var(--accent-pink);
+    transform: scale(1.15);
+}
+
+.modal-error {
+    color: #f72585;
+    font-weight: 700;
+    font-size: 0.9em;
+    min-height: 1.2em;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.modal-actions .btn-secondary {
+    flex: 1;
+}
+
+.modal-card h2 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.35em;
+    color: var(--accent-pink);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.modal-card p {
+    color: var(--text-dim);
+    font-size: 0.95em;
+}
+
+#user-input {
+    background: #0f0e17;
+    border: 1px solid var(--accent-purple);
+    color: var(--text-main);
+    padding: 14px 16px;
+    border-radius: 10px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.2em;
+    text-align: center;
+    outline: none;
+    transition: var(--transition);
+}
+
+#user-input:focus {
+    border-color: var(--accent-pink);
+    box-shadow: 0 0 15px rgba(255, 112, 166, 0.3);
+}
+
+.modal-card .btn-start {
+    margin-top: 4px;
+}
+
+/* --- POPUP DE INFO (Spiz / Lucifer) --- */
+.info-popup {
+    z-index: 3200;
+}
+
+.info-popup-card {
+    width: 500px;
+    max-width: 92%;
+}
+
+.info-popup-img-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.info-popup-img {
+    width: 230px;
+    height: 230px;
+    max-width: 100%;
+    object-fit: contain;
+    background: #0a0a12;
+    border-radius: 12px;
+    border: 3px solid var(--accent-cyan);
+    box-shadow: 0 0 25px rgba(76, 201, 240, 0.7);
+    padding: 6px;
+}
+
+.info-popup-img-wrap .info-popup-emoji {
+    font-size: 4em;
+    filter: drop-shadow(0 0 20px rgba(255, 112, 166, 0.8));
+}
+
+.info-popup-desc {
+    line-height: 1.5;
+}
+
+/* --- MODAL DE NOTIFICACIONES EN COLA (Siguiente ▶) --- */
+.notice-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 3400;
+    background: rgba(0, 0, 0, 0.82);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+.notice-card {
+    width: 560px;
+    max-width: 94%;
+    background: var(--card-bg);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 2px solid var(--accent-purple);
+    border-radius: 18px;
+    padding: 26px 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    text-align: center;
+    box-shadow: 0 0 40px rgba(123, 44, 191, 0.55), 0 20px 50px rgba(0, 0, 0, 0.6);
+    animation: fadeIn 0.3s ease-out;
+}
+
+.notice-icon {
+    font-size: 3em;
+    filter: drop-shadow(0 0 18px rgba(255, 112, 166, 0.8));
+}
+
+.notice-card h2 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.3em;
+    color: var(--accent-pink);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.notice-msg {
+    color: var(--text-main);
+    line-height: 1.5;
+    font-size: 1.02em;
+}
+
+.notice-img-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.notice-img {
+    width: 260px;
+    height: 260px;
+    max-width: 100%;
+    object-fit: contain;
+    background: #0a0a12;
+    border-radius: 12px;
+    border: 3px solid var(--accent-purple);
+    box-shadow: 0 0 25px rgba(123, 44, 191, 0.7);
+    padding: 6px;
+}
+
+.notice-card .btn-start {
+    width: 100%;
+}
+
+/* --- FILAS CLICABLES DEL MENÚ INFO --- */
+.info-clickable {
+    cursor: pointer;
+    padding: 6px 10px;
+    border-radius: 8px;
+    transition: background 0.2s, border-color 0.2s;
+    border: 1px solid transparent;
+}
+
+.info-clickable:hover {
+    background: rgba(76, 201, 240, 0.1);
+    border-color: var(--accent-cyan);
+}
+
+/* --- TIENDA --- */
+.shop-btn {
+    width: 100%;
+    text-align: center;
+    padding: 14px;
+    margin-top: 6px;
+    font-size: 1.05em;
+}
+
+.shop-btn:hover {
+    border-color: var(--accent-pink);
+    box-shadow: var(--neon-glow);
+}
+
+.shop-card {
+    width: 780px;
+    max-width: 96%;
+    max-height: 90vh;
+}
+
+.shop-dragon-talk {
+    font-style: italic;
+    color: var(--accent-cyan);
+    background: rgba(76, 201, 240, 0.08);
+    border-left: 3px solid var(--accent-cyan);
+    padding: 8px 12px;
+    border-radius: 6px;
+}
+
+.shop-layout {
+    display: flex;
+    gap: 20px;
+    align-items: stretch;
+}
+
+.shop-stock {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 66vh;
+    overflow-y: auto;
+}
+
+.shop-right {
+    width: 47%;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 0;
+}
+
+.shop-wallet-big {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 2em;
+    letter-spacing: 1px;
+    color: var(--accent-pink);
+    text-shadow: 0 0 22px rgba(255, 112, 166, 0.6);
+    background: rgba(255, 112, 166, 0.08);
+    border: 1px solid rgba(255, 112, 166, 0.4);
+    border-radius: 14px;
+    padding: 14px 18px;
+    text-align: center;
+}
+
+.shop-dragon {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+}
+
+.shop-dragon img {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    border-radius: 16px;
+    border: 2px solid var(--accent-purple);
+    box-shadow: 0 0 30px rgba(123, 44, 191, 0.6);
+}
+
+.shop-today {
+    color: var(--text-dim);
+    font-size: 0.85em;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 700;
+}
+
+.shop-today #shop-date {
+    color: var(--accent-cyan);
+}
+
+.shop-gift {
+    border-color: var(--accent-cyan);
+    background: rgba(76, 201, 240, 0.08);
+}
+
+.shop-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
+    max-height: 50vh;
+    padding-right: 4px;
+}
+
+.shop-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--glass-border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    text-align: left;
+}
+
+.shop-item.locked {
+    opacity: 0.55;
+}
+
+.shop-item-info {
+    flex: 1;
+    text-align: left;
+}
+
+.shop-item-name {
+    font-weight: 700;
+    color: var(--text-main);
+    font-size: 1.02em;
+}
+
+.shop-item-desc {
+    color: var(--text-dim);
+    font-size: 0.85em;
+    margin-top: 2px;
+}
+
+.shop-item-extra {
+    color: var(--accent-cyan);
+    font-size: 0.8em;
+    margin-top: 2px;
+    font-weight: 600;
+}
+
+.shop-state {
+    color: var(--accent-cyan);
+    font-weight: 700;
+    white-space: nowrap;
+    font-size: 0.95em;
+}
+
+.shop-buy {
+    padding: 8px 16px;
+    white-space: nowrap;
+}
+
+.shop-buy:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* --- RANKING LOPERO (FIJO A LA DERECHA, ENTRE DEALER Y iPOD) --- */
+.ranking-panel {
+    position: fixed;
+    right: 24px;
+    top: 444px;
+    bottom: 460px;
+    width: 290px;
+    overflow-y: auto;
+    background: var(--card-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--accent-purple);
+    border-radius: 14px;
+    padding: 18px 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    z-index: 500;
+}
+
+.ranking-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.15em;
+    letter-spacing: 1px;
+    color: var(--accent-pink);
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 12px;
+    text-shadow: var(--neon-glow);
+}
+
+.ranking-panel ol {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.ranking-panel li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 6px;
+    color: var(--text-dim);
+    font-size: 0.98em;
+}
+
+.ranking-panel li.lb-row {
+    cursor: pointer;
+    border-radius: 8px;
+    transition: background 0.2s, color 0.2s;
+}
+
+.ranking-panel li.lb-row:hover {
+    background: rgba(123, 44, 191, 0.2);
+    color: var(--text-main);
+}
+
+.ranking-panel li .lb-rank {
+    color: var(--accent-purple);
+    font-weight: 700;
+    min-width: 26px;
+}
+
+.ranking-panel li.lb-below {
+    margin: 8px -4px 0;
+    padding: 4px 8px;
+    border: 1px dashed rgba(255, 112, 166, 0.45);
+    border-radius: 8px;
+    background: rgba(255, 112, 166, 0.07);
+}
+
+.ranking-panel li.lb-below .lb-rank {
+    color: var(--accent-pink);
+}
+
+.ranking-panel li .lb-name {
+    font-weight: 600;
+    color: var(--text-main);
+    flex: 1;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ranking-panel li .lb-score {
+    color: var(--accent-cyan);
+    font-weight: 700;
+}
+
+.ranking-panel li.lb-you {
+    background: rgba(255, 112, 166, 0.12);
+    border-radius: 6px;
+    padding: 3px 8px;
+    margin: 0 -4px;
+}
+
+.ranking-panel li.lb-you.lb-below {
+    margin: 8px -4px 0;
+}
+
+.ranking-panel .ranking-empty {
+    color: var(--text-dim);
+    text-align: center;
+    font-size: 0.9em;
+}
+
+/* --- iPod: reproductor fijo (nano 3 negro) sobre el fondo, interactivo --- */
+.ipod-panel {
+    position: fixed;
+    right: 24px;
+    bottom: 90px;
+    z-index: 510;
+}
+
+.ipod-panel .ipod-device {
+    width: 230px;
+    background: linear-gradient(160deg, #1d1d22, #0e0e11 60%, #050507);
+    border-radius: 24px;
+    padding: 14px 12px 16px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.ipod-panel .ipod-screen {
+    background: #000;
+    border: 2px solid #333;
+    border-radius: 6px;
+    padding: 8px;
+    min-height: 150px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.ipod-panel .ipod-screen-head {
+    color: #7ec8ff;
+    border-bottom: 1px solid rgba(126, 200, 255, 0.35);
+}
+
+.ipod-panel .ipod-track-item {
+    color: #a8d4ff;
+}
+
+.ipod-panel .ipod-track-item.ipod-track-active {
+    background: rgba(126, 200, 255, 0.22);
+    color: #ffffff;
+}
+
+.ipod-panel .ipod-track-item:hover {
+    background: rgba(126, 200, 255, 0.12);
+}
+
+.ipod-panel .ipod-wheel {
+    background: radial-gradient(circle at 30% 30%, #3a3a42, #191920 60%, #0b0b0f);
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.8), 0 1px 1px rgba(255, 255, 255, 0.12);
+}
+
+.ipod-panel .ipod-wheel-btn {
+    color: #cfcfd8;
+    text-shadow: 0 1px 2px #000;
+}
+
+.ipod-panel .ipod-wheel-btn:hover {
+    color: #fff;
+}
+
+.ipod-panel .ipod-wheel-ctr {
+    background: radial-gradient(circle at 30% 30%, #4a4a52, #24242b 60%, #121216);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+
+.ipod-panel .ipod-now-playing {
+    color: #8ee6a8;
+}
+
+/* --- iPod: hueco de compra en la tienda (debajo del dragón) --- */
+.shop-ipod-slot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px dashed var(--accent-cyan);
+    border-radius: 12px;
+    padding: 12px 14px;
+}
+
+.shop-ipod-slot .shop-ipod-img {
+    width: 70px;
+    height: auto;
+    border-radius: 8px;
+    border: 1px solid var(--accent-purple);
+}
+
+.shop-ipod-info {
+    flex: 1;
+    text-align: left;
+}
+
+.shop-ipod-info .shop-ipod-name {
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.shop-ipod-info .shop-ipod-desc {
+    color: var(--text-dim);
+    font-size: 0.82em;
+}
+
+.shop-ipod-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+}
+
+/* --- iPod: dispositivo nano 3 negro --- */
+.ipod-device {
+    width: 230px;
+    margin: 0 auto;
+    background: linear-gradient(160deg, #1d1d22, #0e0e11 60%, #050507);
+    border-radius: 24px;
+    padding: 14px 12px 16px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.ipod-screen {
+    background: #000;
+    border: 2px solid #333;
+    border-radius: 6px;
+    padding: 8px;
+    min-height: 150px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.ipod-screen-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.7em;
+    color: #7ec8ff;
+    border-bottom: 1px solid rgba(126, 200, 255, 0.35);
+    padding-bottom: 4px;
+    font-weight: 700;
+}
+
+.ipod-screen-title {
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.ipod-track-list {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-height: 0;
+}
+
+.ipod-track-item {
+    font-size: 0.78em;
+    color: #a8d4ff;
+    padding: 4px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.ipod-track-item:hover {
+    background: rgba(126, 200, 255, 0.12);
+}
+
+.ipod-track-item.ipod-track-active {
+    background: rgba(126, 200, 255, 0.22);
+    color: #ffffff;
+    font-weight: 700;
+}
+
+.ipod-track-item.ipod-track-locked {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.ipod-now-playing {
+    font-size: 0.7em;
+    color: #8ee6a8;
+    min-height: 1em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: center;
+}
+
+/* --- iPod MINIMIZADO: botón y "shuffle" compacto (móvil) --- */
+.ipod-minimize-btn {
+    position: absolute;
+    top: -10px;
+    right: -6px;
+    z-index: 3;
+    display: none;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 1px solid var(--accent-pink);
+    background: rgba(15, 14, 23, 0.95);
+    color: var(--accent-pink);
+    font-size: 1.1em;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+
+.ipod-minimize-btn:hover {
+    transform: scale(1.1);
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+}
+
+.ipod-shuffle {
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.ipod-shuffle-body {
+    width: 108px;
+    background: linear-gradient(160deg, #1d1d22, #0e0e11 60%, #050507);
+    border-radius: 14px;
+    padding: 8px 8px 10px;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.65), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    position: relative;
+}
+
+.ipod-shuffle-clip {
+    width: 30px;
+    height: 8px;
+    background: linear-gradient(180deg, #2a2a30, #111116);
+    border-radius: 0 0 4px 4px;
+    margin-top: -8px;
+}
+
+.ipod-shuffle-screen {
+    width: 100%;
+    background: #000;
+    border: 1px solid #333;
+    border-radius: 5px;
+    padding: 4px 6px;
+    min-height: 20px;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+}
+
+.ipod-shuffle-track {
+    color: #8ee6a8;
+    font-size: 0.55em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+}
+
+.ipod-shuffle-controls {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+}
+
+.ipod-shuffle-btn {
+    border: none;
+    background: transparent;
+    color: #cfcfd8;
+    font-weight: 700;
+    font-size: 0.8em;
+    cursor: pointer;
+    padding: 2px;
+    line-height: 1;
+}
+
+.ipod-shuffle-btn:hover {
+    color: #fff;
+}
+
+/* Estado minimizado: se oculta el dispositivo y se muestra solo el shuffle */
+.ipod-panel.ipod-minimized .ipod-device {
+    display: none;
+}
+
+.ipod-panel.ipod-minimized .ipod-shuffle {
+    display: block;
+}
+
+/* Modo "solo canción actual" (botón MENÚ de la rueda) */
+.ipod-screen.ipod-screen-mini .ipod-track-list {
+    display: none;
+}
+
+.ipod-screen.ipod-screen-mini .ipod-now-playing {
+    font-size: 0.85em;
+    line-height: 1.4;
+    white-space: normal;
+    min-height: 2.5em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ipod-wheel {
+    position: relative;
+    width: 150px;
+    height: 150px;
+    margin: 0 auto;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #3a3a42, #191920 60%, #0b0b0f);
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.8), 0 1px 1px rgba(255, 255, 255, 0.12);
+}
+
+.ipod-wheel-btn {
+    position: absolute;
+    border: none;
+    background: transparent;
+    color: #cfcfd8;
+    font-weight: 700;
+    font-family: 'Rajdhani', sans-serif;
+    cursor: pointer;
+    padding: 4px;
+    text-shadow: 0 1px 2px #000;
+}
+
+.ipod-wheel-btn:hover {
+    color: #fff;
+}
+
+.ipod-wheel-top {
+    top: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.7em;
+    letter-spacing: 1px;
+}
+
+.ipod-wheel-ctr {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #4a4a52, #24242b 60%, #121216);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+    font-size: 0.95em;
+}
+
+.ipod-wheel-left {
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1em;
+}
+
+.ipod-wheel-right {
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1em;
+}
+
+/* --- INPUTS DE CONTRASEÑA --- */
+#pass-user,
+#pass-input,
+#pass-input2,
+#name-pass-input {
+    background: #0f0e17;
+    border: 1px solid var(--accent-purple);
+    color: var(--text-main);
+    padding: 14px 16px;
+    border-radius: 10px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.2em;
+    text-align: center;
+    outline: none;
+    transition: var(--transition);
+}
+
+#pass-user:focus,
+#pass-input:focus,
+#pass-input2:focus,
+#name-pass-input:focus {
+    border-color: var(--accent-pink);
+    box-shadow: 0 0 15px rgba(255, 112, 166, 0.3);
+}
+
+/* --- MODAL INFO --- */
+.info-user {
+    color: var(--accent-pink);
+    font-weight: 700;
+    font-size: 1.1em;
+}
+
+#info-modal .modal-card {
+    width: 520px;
+    max-width: 94%;
+    gap: 14px;
+}
+
+#info-modal .modal-card h2 {
+    font-size: 1.5em;
+}
+
+.info-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 6px 0;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 1.1em;
+    padding: 4px 6px;
+}
+
+.info-row span:first-child {
+    color: var(--text-dim);
+}
+
+.info-row span:last-child {
+    color: var(--accent-cyan);
+    font-weight: 700;
+}
+
+.info-more {
+    margin-top: 4px;
+}
+
+.info-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95em;
+}
+
+.info-table th,
+.info-table td {
+    padding: 6px 8px;
+    text-align: center;
+    border-bottom: 1px solid var(--glass-border);
+    color: var(--text-main);
+}
+
+.info-table th {
+    color: var(--accent-purple);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.8em;
+    letter-spacing: 0.5px;
+}
+
+.info-table td:first-child {
+    text-align: left;
+    color: var(--text-dim);
+    font-weight: 600;
+}
+
+/* --- TOAST / NOTIFICACIÓN (globo, a la izquierda) --- */
+.toast {
+    position: fixed;
+    top: 84px;
+    left: 20px;
+    z-index: 3000;
+    max-width: min(380px, calc(100vw - 40px));
+    background: var(--card-bg);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 112, 166, 0.55);
+    border-radius: 20px;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05), 0 8px 40px rgba(0, 0, 0, 0.55), 0 0 28px rgba(255, 112, 166, 0.35);
+    animation: toastIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    overflow: hidden;
+}
+
+.toast[data-type="spiz"] {
+    border-color: rgba(76, 201, 240, 0.6);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05), 0 8px 40px rgba(0, 0, 0, 0.55), 0 0 32px rgba(76, 201, 240, 0.45);
+}
+
+/* Notificación temporal de Lucifer: en la zona media-izquierda, sin bloquear */
+.toast[data-type="lucifer"] {
+    top: 38%;
+    left: 20px;
+    border-color: rgba(255, 112, 166, 0.7);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05), 0 8px 40px rgba(0, 0, 0, 0.55), 0 0 36px rgba(255, 112, 166, 0.55);
+}
+
+.toast[data-type="lucifer"] .toast-title {
+    color: #f72585;
+}
+
+.toast[data-type="lucifer"] .toast-icon {
+    background: linear-gradient(135deg, rgba(247, 37, 133, 0.22), rgba(255, 112, 166, 0.18));
+    border-color: rgba(247, 37, 133, 0.55);
+    box-shadow: inset 0 0 12px rgba(247, 37, 133, 0.25);
+}
+
+.toast-bubble {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+}
+
+.toast-icon {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4em;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(255, 112, 166, 0.18), rgba(123, 44, 191, 0.18));
+    border: 1px solid rgba(255, 112, 166, 0.4);
+    box-shadow: inset 0 0 12px rgba(255, 112, 166, 0.2);
+}
+
+.toast[data-type="spiz"] .toast-icon {
+    background: linear-gradient(135deg, rgba(76, 201, 240, 0.2), rgba(72, 149, 239, 0.2));
+    border-color: rgba(76, 201, 240, 0.5);
+    box-shadow: inset 0 0 12px rgba(76, 201, 240, 0.25);
+}
+
+.toast-body {
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+}
+
+.toast-title {
+    font-family: 'Orbitron', sans-serif;
+    color: var(--accent-pink);
+    font-size: 0.95em;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+}
+
+.toast[data-type="spiz"] .toast-title {
+    color: var(--accent-cyan);
+}
+
+.toast-msg {
+    color: var(--text-main);
+    font-weight: 600;
+    font-size: 1em;
+    line-height: 1.3;
+}
+
+.toast-detail {
+    color: var(--text-dim);
+    font-size: 0.9em;
+    margin-top: 3px;
+}
+
+.toast-action {
+    margin-top: 10px;
+    padding: 8px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--accent-cyan);
+    background: rgba(76, 201, 240, 0.12);
+    color: var(--accent-cyan);
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 0.95em;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.toast-action:hover {
+    background: var(--accent-cyan);
+    color: #04121a;
+    box-shadow: 0 0 18px rgba(76, 201, 240, 0.6);
+}
+
+.toast-close {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 0.9em;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 8px;
+    transition: color 0.2s, background 0.2s;
+}
+
+.toast-close:hover {
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.toast-progress {
+    height: 3px;
+    width: 100%;
+    background: linear-gradient(90deg, var(--accent-pink), var(--accent-purple));
+    transform-origin: left center;
+}
+
+.toast[data-type="spiz"] .toast-progress {
+    background: linear-gradient(90deg, var(--accent-cyan), #4895ef);
+}
+
+@keyframes toastIn {
+    from { opacity: 0; transform: translateX(-26px) scale(0.94); }
+    to { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+@keyframes toastProgress {
+    from { width: 100%; }
+    to { width: 0%; }
+}
+
+.info-row .stat-icon {
+    vertical-align: middle;
+    margin-right: 6px;
+}
+
+/* --- PANTALLA DE RESULTADO DE PARTIDA --- */
+.result-card {
+    width: 440px;
+    max-width: 92%;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+#result-modal .result-card h2 {
+    font-size: 1.55em;
+}
+
+#result-modal.result-spiz .result-card {
+    border-color: rgba(76, 201, 240, 0.6);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 20px 50px rgba(0, 0, 0, 0.55), 0 0 40px rgba(76, 201, 240, 0.35);
+}
+
+#result-modal.result-spiz #result-title {
+    color: var(--accent-cyan);
+}
+
+.result-subtitle {
+    color: var(--text-main);
+    font-weight: 600;
+    font-size: 1.15em;
+    line-height: 1.3;
+}
+
+.result-extra {
+    color: var(--text-dim);
+    font-size: 1em;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+}
+
+.result-section {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.95em;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--accent-purple);
+    border-bottom: 1px dashed var(--glass-border);
+    padding-bottom: 6px;
+    margin-top: 6px;
+}
+
+.result-new-badge {
+    display: inline-block;
+    vertical-align: middle;
+    margin-left: 4px;
+    font-size: 0.7em;
+    line-height: 1;
+    animation: fadeIn 0.4s ease-out;
+}
+
+.result-earnings {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.result-earn-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    font-size: 1.1em;
+    padding: 3px 0;
+}
+
+.result-earn-label {
+    color: var(--text-dim);
+    flex: 1;
+    text-align: left;
+}
+
+.result-earn-amount {
+    color: var(--accent-cyan);
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.result-earn-neg .result-earn-amount {
+    color: #f72585;
+}
+
+.result-earn-total {
+    border-top: 1px solid var(--glass-border);
+    margin-top: 6px;
+    padding-top: 8px;
+    font-size: 1.3em;
+}
+
+.result-earn-total .result-earn-label {
+    color: var(--text-main);
+    font-family: 'Orbitron', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 0.95em;
+}
+
+.result-earn-total .result-earn-amount {
+    color: var(--accent-pink);
+    text-shadow: var(--neon-glow);
+}
+
+.result-earn-none {
+    color: var(--text-dim);
+    font-size: 1.05em;
+    font-style: italic;
+}
+
+.result-amulets-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.result-amulets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+}
+
+.result-amulet-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    background: rgba(123, 44, 191, 0.15);
+    border: 1px solid var(--accent-purple);
+    border-radius: 12px;
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: var(--transition);
+    color: var(--text-main);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.85em;
+    font-weight: 700;
+    min-width: 84px;
+}
+
+.result-amulet-btn:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent-pink);
+    box-shadow: 0 0 16px rgba(255, 112, 166, 0.5);
+}
+
+.result-amulet-btn .amu-img,
+.result-amulet-btn .amu-emoji {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    object-fit: cover;
+    font-size: 2em;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* --- PANTALLA DE RESULTADO: flotante, no bloquea --- */
+#result-modal.modal-float {
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    pointer-events: none;
+    align-items: flex-start;
+    padding-top: 30vh;
+    z-index: 2200;
+}
+
+#result-modal.modal-float .result-card {
+    position: relative;
+    pointer-events: auto;
+    width: 560px;
+    max-width: 92%;
+    max-height: 72vh;
+    overflow-y: auto;
+    background: rgba(12, 12, 20, 0.97);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-color: rgba(255, 112, 166, 0.6);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 30px 80px rgba(0, 0, 0, 0.8), 0 0 45px rgba(255, 112, 166, 0.25);
+}
+
+.result-drag-handle {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-dim);
+    font-size: 0.9em;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+    border-radius: 17px 17px 0 0;
+    background: rgba(255, 255, 255, 0.04);
+    touch-action: none;
+}
+
+.result-drag-handle:hover {
+    color: var(--accent-pink);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.result-drag-handle:active {
+    cursor: grabbing;
+}
+
+#result-modal.result-spiz.modal-float .result-card {
+    border-color: rgba(76, 201, 240, 0.65);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 30px 80px rgba(0, 0, 0, 0.7), 0 0 50px rgba(76, 201, 240, 0.4);
+}
+
+.result-close-x {
+    position: absolute;
+    top: 12px;
+    left: 14px;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 1.3em;
+    line-height: 1;
+    cursor: pointer;
+    transition: var(--transition);
+    z-index: 2;
+}
+
+.result-close-x:hover {
+    color: var(--accent-pink);
+    transform: scale(1.2);
+}
+
+#result-modal.result-spiz.modal-float .result-close-x:hover {
+    color: var(--accent-cyan);
+}
+
+.result-reopen-btn {
+    position: fixed;
+    top: 30vh;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    background: var(--card-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--accent-pink);
+    color: var(--text-main);
+    font-size: 1.4em;
+    cursor: pointer;
+    z-index: 2200;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 25px rgba(255, 112, 166, 0.4);
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.result-reopen-btn:hover {
+    transform: translateX(-50%) translateY(-3px);
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 14px 34px rgba(0, 0, 0, 0.6), 0 0 32px rgba(76, 201, 240, 0.5);
+}
+
+.floating-btn {
+    position: fixed;
+    z-index: 1700;
+    background: var(--card-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--accent-pink);
+    color: var(--text-main);
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 1.4em;
+    padding: 16px 26px;
+    border-radius: 999px;
+    cursor: pointer;
+    box-shadow: 0 0 18px rgba(255, 112, 166, 0.35);
+    transition: var(--transition);
+}
+
+.floating-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 26px rgba(255, 112, 166, 0.55);
+}
+
+.floating-chat {
+    bottom: 20px;
+    left: 20px;
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 18px rgba(76, 201, 240, 0.35);
+}
+
+.floating-chat:hover {
+    box-shadow: 0 0 26px rgba(76, 201, 240, 0.55);
+}
+
+.floating-requests {
+    bottom: 110px;
+    left: 20px;
+    border-color: #f72585;
+    box-shadow: 0 0 18px rgba(247, 37, 133, 0.35);
+}
+
+.floating-requests:hover {
+    box-shadow: 0 0 26px rgba(247, 37, 133, 0.55);
+}
+
+/* El botón del ranking solo se usa en móvil (desplegable); en escritorio el
+   panel está siempre visible y este botón no hace falta */
+.floating-ranking {
+    display: none;
+}
+
+body.chat-open .floating-ranking {
+    display: none;
+}
+
+/* Cuando el chat está abierto, el botón Amigos (y su desplegable) suben
+   por encima del panel para que no se pisen. Se usa min() para que en
+   pantallas bajas no se salgan por arriba. */
+body.chat-open .floating-requests {
+    bottom: calc(96px + min(420px, 58vh) + 16px);
+}
+
+body.chat-open .requests-dropdown {
+    bottom: calc(96px + min(420px, 58vh) + 16px + 66px + 12px);
+}
+
+.requests-dropdown {
+    position: fixed;
+    left: 20px;
+    bottom: 186px;
+    width: 300px;
+    max-height: 300px;
+    overflow-y: auto;
+    background: var(--card-bg);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid #f72585;
+    border-radius: 16px;
+    padding: 10px;
+    z-index: 1600;
+    box-shadow: 0 0 30px rgba(247, 37, 133, 0.35);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    animation: fadeIn 0.25s ease-out;
+}
+
+.requests-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.78em;
+    letter-spacing: 1px;
+    color: #f72585;
+    text-transform: uppercase;
+    text-align: left;
+}
+
+.requests-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.requests-list .friends-empty {
+    padding: 10px 0;
+    font-size: 0.85em;
+}
+
+.requests-add-row {
+    display: flex;
+    gap: 6px;
+    margin-top: 6px;
+    border-top: 1px solid rgba(247, 37, 133, 0.25);
+    padding-top: 8px;
+}
+
+.requests-add-row input {
+    flex: 1;
+    min-width: 0;
+    background: #0f0e17;
+    border: 1px solid var(--accent-purple);
+    color: var(--text-main);
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.9em;
+    outline: none;
+}
+
+.requests-add-row input:focus {
+    border-color: #f72585;
+}
+
+.requests-add-row button {
+    flex-shrink: 0;
+    width: 40px;
+    background: #f72585;
+    border: none;
+    border-radius: 10px;
+    color: #fff;
+    font-size: 1em;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.requests-add-row button:hover {
+    background: var(--accent-pink);
+}
+
+/* Amigo como fila clicable dentro del desplegable de Amigos */
+.friend-row.dd-friend {
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    color: var(--text-main);
+    transition: var(--transition);
+}
+
+.friend-row.dd-friend:hover {
+    background: rgba(123, 44, 191, 0.2);
+    border-color: var(--accent-purple);
+}
+
+.friend-row.dd-friend .friend-yes {
+    color: var(--accent-cyan);
+}
+
+/* Banner fijo de registro (debajo de la barra superior, a la derecha) */
+.register-banner {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    z-index: 900;
+    max-width: 300px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    background: linear-gradient(135deg, rgba(123, 44, 191, 0.4), rgba(255, 112, 166, 0.25));
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--accent-pink);
+    border-radius: 14px;
+    padding: 12px 14px;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 10px 30px rgba(0, 0, 0, 0.55), 0 0 22px rgba(255, 112, 166, 0.3);
+    animation: fadeIn 0.3s ease-out;
+}
+
+.register-banner-text {
+    flex: 1;
+    color: var(--text-main);
+    font-weight: 700;
+    font-size: 0.9em;
+    line-height: 1.35;
+}
+
+.register-banner-close {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 1em;
+    cursor: pointer;
+    line-height: 1;
+    transition: var(--transition);
+}
+
+.register-banner-close:hover {
+    color: var(--accent-pink);
+    transform: scale(1.2);
+}
+
+.chat-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    min-width: 26px;
+    height: 26px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: #f72585;
+    color: #fff;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 1em;
+    line-height: 26px;
+    text-align: center;
+    box-shadow: 0 0 12px rgba(247, 37, 133, 0.7);
+}
+
+/* --- Botón de la reliquia del Dragon Narco (durante la partida, a la izquierda) --- */
+.relic-dragon-btn {
+    position: fixed;
+    left: 20px;
+    top: 38%;
+    transform: translateY(-50%);
+    width: 86px;
+    height: 86px;
+    border-radius: 50%;
+    padding: 0;
+    background: radial-gradient(circle at 30% 30%, rgba(255, 112, 166, 0.25), rgba(123, 44, 191, 0.4));
+    border: 2px solid var(--accent-cyan);
+    cursor: pointer;
+    z-index: 1600;
+    box-shadow: 0 0 0 4px rgba(76, 201, 240, 0.15), 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 30px rgba(76, 201, 240, 0.5);
+    transition: var(--transition);
+    overflow: visible;
+    animation: dragonPulse 1.6s infinite alternate;
+}
+
+.relic-dragon-btn img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.relic-dragon-btn:hover {
+    transform: translateY(-50%) scale(1.08);
+    box-shadow: 0 0 0 4px rgba(76, 201, 240, 0.25), 0 14px 36px rgba(0, 0, 0, 0.7), 0 0 45px rgba(76, 201, 240, 0.7);
+}
+
+.relic-tag {
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    background: var(--card-bg);
+    border: 1px solid var(--accent-cyan);
+    border-radius: 999px;
+    padding: 2px 10px;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 0.8em;
+    color: var(--accent-cyan);
+    box-shadow: 0 0 12px rgba(76, 201, 240, 0.4);
+}
+
+@keyframes dragonPulse {
+    from { box-shadow: 0 0 0 4px rgba(76, 201, 240, 0.12), 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 25px rgba(76, 201, 240, 0.35); }
+    to { box-shadow: 0 0 0 4px rgba(76, 201, 240, 0.22), 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 45px rgba(76, 201, 240, 0.65); }
+}
+
+/* --- Botón especial de la reliquia Syntek (inmunidad de 3s) ---
+   Misma categoría que el botón del dragón: si están los dos activos se
+   apilan (el CSS/JS los coloca uno sobre otro sin pisarse). */
+.relic-syntek-btn {
+    position: fixed;
+    left: 20px;
+    top: 38%;
+    transform: translateY(-50%);
+    width: 86px;
+    height: 86px;
+    border-radius: 50%;
+    padding: 0;
+    background: radial-gradient(circle at 30% 30%, rgba(255, 112, 166, 0.3), rgba(123, 44, 191, 0.5));
+    border: 2px solid var(--accent-pink);
+    cursor: pointer;
+    z-index: 1600;
+    box-shadow: 0 0 0 4px rgba(255, 112, 166, 0.18), 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 30px rgba(255, 112, 166, 0.5);
+    transition: var(--transition);
+    overflow: visible;
+    animation: syntekPulse 1.6s infinite alternate;
+}
+
+.relic-syntek-btn img {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.relic-btn-emoji {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.1em;
+}
+
+.relic-syntek-btn:hover {
+    transform: translateY(-50%) scale(1.08);
+    box-shadow: 0 0 0 4px rgba(255, 112, 166, 0.3), 0 14px 36px rgba(0, 0, 0, 0.7), 0 0 45px rgba(255, 112, 166, 0.7);
+}
+
+@keyframes syntekPulse {
+    from { box-shadow: 0 0 0 4px rgba(255, 112, 166, 0.15), 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 25px rgba(255, 112, 166, 0.35); }
+    to { box-shadow: 0 0 0 4px rgba(255, 112, 166, 0.25), 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 45px rgba(255, 112, 166, 0.65); }
+}
+
+/* Inmunidad Syntek activa: el tablero se tiñe de rosita para que se vea. */
+body.syntek-immunity #board {
+    box-shadow: 0 0 60px rgba(255, 112, 166, 0.55), 0 0 40px rgba(0, 0, 0, 0.5);
+    border-color: var(--accent-pink);
+}
+
+/* Bolsa tocada durante la inmunidad: revelada y "neutralizada" */
+.cell.mine-immunity {
+    background: #2b1440;
+    border: 2px solid var(--accent-pink);
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5), 0 0 12px rgba(255, 112, 166, 0.4);
+}
+
+.cell.mine-immunity .cell-img {
+    opacity: 0.6;
+    filter: saturate(0.5) brightness(1.3);
+}
+
+/* --- MODAL DE AMIGOS --- */
+.friends-card {
+    width: 400px;
+    max-height: 85vh;
+    overflow-y: auto;
+}
+
+.friends-tabs {
+    display: flex;
+    gap: 6px;
+}
+
+.friends-tab {
+    flex: 1;
+    padding: 8px 6px;
+    border-radius: 10px;
+    border: 1px solid var(--accent-purple);
+    background: rgba(123, 44, 191, 0.1);
+    color: var(--text-dim);
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 0.9em;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.friends-tab.friends-tab-active {
+    background: var(--accent-purple);
+    color: #fff;
+    box-shadow: 0 0 14px rgba(123, 44, 191, 0.5);
+}
+
+.friends-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 120px;
+}
+
+/* Lista de amigos: nav a la izquierda + detalle a la derecha */
+.friends-list-layout {
+    flex-direction: row;
+    align-items: stretch;
+    gap: 10px;
+    min-height: 200px;
+}
+
+.friends-nav {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 2px;
+}
+
+.friends-nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    text-align: left;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--glass-border);
+    border-radius: 10px;
+    padding: 9px 12px;
+    color: var(--text-main);
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 0.95em;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.friends-nav-btn:hover {
+    background: rgba(123, 44, 191, 0.2);
+    border-color: var(--accent-purple);
+}
+
+.friends-nav-btn.friends-nav-active {
+    background: rgba(76, 201, 240, 0.16);
+    border-color: var(--accent-cyan);
+}
+
+.friends-detail {
+    width: 190px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: stretch;
+    justify-content: center;
+    border-left: 1px dashed var(--glass-border);
+    padding-left: 12px;
+}
+
+.friends-detail-name {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1em;
+    color: var(--accent-cyan);
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.friends-detail-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.friends-detail-actions .btn-secondary {
+    padding: 10px 8px;
+    font-size: 0.92em;
+}
+
+.friends-detail-actions .friends-detail-remove {
+    border-color: rgba(247, 37, 133, 0.5);
+    color: #f72585;
+}
+
+.friends-detail-actions .friends-detail-remove:hover {
+    background: rgba(247, 37, 133, 0.15);
+    border-color: #f72585;
+}
+
+/* Globo de confirmación (eliminar amigo, cerrar sesión, crear cuenta, etc.).
+   Es un MODAL CENTRADO con fondo oscuro: imposible no verlo. Bloquea hasta
+   que se responde Sí/No (el juego queda pausado a propósito). */
+.confirm-bubble {
+    position: fixed;
+    inset: 0;
+    z-index: 2700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.72);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    animation: fadeIn 0.2s ease-out;
+}
+
+.confirm-bubble-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 2px solid rgba(247, 37, 133, 0.7);
+    border-radius: 18px;
+    padding: 26px 30px;
+    max-width: min(460px, calc(100vw - 32px));
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    align-items: center;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 18px 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(247, 37, 133, 0.45);
+}
+
+.confirm-bubble-icon {
+    font-size: 2.4em;
+    filter: drop-shadow(0 0 12px rgba(247, 37, 133, 0.6));
+}
+
+.confirm-bubble-msg {
+    color: var(--text-main);
+    font-weight: 700;
+    font-size: 1.1em;
+    text-align: center;
+    line-height: 1.4;
+    white-space: pre-line;
+    max-width: 100%;
+}
+
+.confirm-bubble-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 4px;
+}
+
+.confirm-bubble-actions .btn-secondary {
+    padding: 14px 32px;
+    font-size: 1.1em;
+    font-weight: 700;
+}
+
+.confirm-bubble-yes {
+    border-color: rgba(247, 37, 133, 0.6);
+}
+
+.confirm-bubble-yes:hover {
+    background: rgba(247, 37, 133, 0.2);
+    border-color: #f72585;
+}
+
+.confirm-bubble-no {
+    border-color: var(--glass-border);
+}
+
+.friends-add-row {
+    display: flex;
+    gap: 8px;
+}
+
+.friends-add-row input,
+#friends-search-input {
+    flex: 1;
+    background: #0f0e17;
+    border: 1px solid var(--accent-purple);
+    color: var(--text-main);
+    border-radius: 10px;
+    padding: 9px 12px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.95em;
+    outline: none;
+}
+
+.friends-add-row input:focus,
+#friends-search-input:focus {
+    border-color: var(--accent-pink);
+}
+
+.friends-results {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.friend-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--glass-border);
+    border-radius: 10px;
+    padding: 8px 12px;
+}
+
+.friend-name {
+    font-weight: 700;
+    color: var(--text-main);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.friend-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.friend-actions .btn-secondary {
+    padding: 4px 10px;
+    font-size: 0.85em;
+}
+
+.friend-yes {
+    color: var(--accent-cyan);
+    font-weight: 700;
+    font-size: 0.9em;
+}
+
+.friends-empty {
+    color: var(--text-dim);
+    text-align: center;
+    padding: 18px 0;
+    font-size: 0.95em;
+}
+
+.friends-subtitle {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.8em;
+    letter-spacing: 1px;
+    color: var(--accent-cyan);
+    text-transform: uppercase;
+    text-align: left;
+    margin-top: 8px;
+}
+
+.friends-subtitle:first-child {
+    margin-top: 0;
+}
+
+.chat-requests {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px;
+    border-bottom: 1px solid rgba(247, 37, 133, 0.4);
+    background: rgba(247, 37, 133, 0.08);
+    flex-shrink: 0;
+    max-height: 40%;
+    overflow-y: auto;
+}
+
+.chat-requests-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.75em;
+    letter-spacing: 1px;
+    color: #f72585;
+    text-transform: uppercase;
+    text-align: left;
+}
+
+.chat-req .friend-name {
+    font-size: 0.85em;
+}
+
+.chat-req .friend-actions .btn-secondary {
+    padding: 3px 8px;
+    font-size: 0.8em;
+}
+
+/* --- MODAL DE JUGADOR (perfil) --- */
+.player-card {
+    width: 360px;
+}
+
+.player-info {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.player-stat {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--glass-border);
+    border-radius: 10px;
+    padding: 8px 12px;
+    color: var(--text-main);
+    font-weight: 600;
+    text-align: left;
+}
+
+/* --- CHAT (abajo a la izquierda) --- */
+.chat-panel {
+    position: fixed;
+    left: 20px;
+    bottom: 96px;
+    width: 300px;
+    height: min(420px, 58vh);
+    background: var(--card-bg);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--accent-cyan);
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 1500;
+    box-shadow: 0 0 30px rgba(76, 201, 240, 0.3);
+    animation: fadeIn 0.3s ease-out;
+}
+
+.chat-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(76, 201, 240, 0.3);
+    background: rgba(76, 201, 240, 0.08);
+}
+
+.chat-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.9em;
+    color: var(--accent-cyan);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.chat-x {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 1.1em;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.chat-x:hover {
+    color: var(--accent-pink);
+}
+
+.chat-back {
+    background: none;
+    border: none;
+    color: var(--accent-cyan);
+    font-size: 1.5em;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0 8px 0 0;
+    transition: var(--transition);
+}
+
+.chat-back:hover {
+    color: var(--accent-pink);
+}
+
+.chat-convs {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 6px;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+}
+
+.chat-friend {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    padding: 11px 12px;
+    border-radius: 12px;
+    border: 1px solid var(--glass-border);
+    background: rgba(0, 0, 0, 0.2);
+    color: var(--text-main);
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 0.95em;
+    cursor: pointer;
+    text-align: left;
+    transition: var(--transition);
+}
+
+.chat-friend:hover {
+    background: rgba(123, 44, 191, 0.2);
+    border-color: var(--accent-purple);
+}
+
+.chat-friend.chat-friend-active {
+    background: rgba(76, 201, 240, 0.18);
+    border-color: var(--accent-cyan);
+}
+
+.chat-friend-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.chat-friend-unread {
+    flex-shrink: 0;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: var(--accent-cyan);
+    color: #04121a;
+    font-size: 0.8em;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+.chat-view {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.chat-nofriends {
+    color: var(--text-dim);
+    text-align: center;
+    padding: 14px 10px;
+    font-size: 0.9em;
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.chat-msg {
+    max-width: 85%;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 7px 11px;
+    border-radius: 14px;
+    font-size: 0.9em;
+}
+
+.chat-msg-me {
+    align-self: flex-end;
+    background: linear-gradient(135deg, rgba(255, 112, 166, 0.25), rgba(123, 44, 191, 0.25));
+    border: 1px solid var(--accent-pink);
+    border-bottom-right-radius: 4px;
+}
+
+.chat-msg-other {
+    align-self: flex-start;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    border-bottom-left-radius: 4px;
+}
+
+.chat-msg-name {
+    font-size: 0.75em;
+    font-weight: 700;
+    color: var(--accent-cyan);
+    opacity: 0.9;
+}
+
+.chat-msg-me .chat-msg-name {
+    color: var(--accent-pink);
+}
+
+.chat-msg-text {
+    color: var(--text-main);
+    line-height: 1.35;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+}
+
+.chat-input-row {
+    display: flex;
+    gap: 6px;
+    padding: 8px;
+    border-top: 1px solid var(--glass-border);
+    flex-shrink: 0;
+}
+
+.chat-input-row input {
+    flex: 1;
+    background: #0f0e17;
+    border: 1px solid var(--accent-purple);
+    color: var(--text-main);
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.9em;
+    outline: none;
+}
+
+.chat-input-row input:focus {
+    border-color: var(--accent-cyan);
+}
+
+.chat-input-row button {
+    width: 38px;
+    background: var(--accent-cyan);
+    border: none;
+    border-radius: 10px;
+    color: #04121a;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.chat-input-row button:hover {
+    box-shadow: 0 0 14px rgba(76, 201, 240, 0.6);
+}
+
+/* ============================================================================
+   VENTANA NO MAXIMIZADA (769-1699px): ranking y dealer se muestran en versión
+   COMPACTA fija a la derecha. El contenido se estrecha (padding-right) para
+   dejarles hueco, y los paneles se redimensionan solos con max-height+scroll.
+   En pantallas muy anchas (>=1700px) aparecen grandes en los márgenes laterales.
+   ============================================================================ */
+@media (min-width: 769px) and (max-width: 1699px) {
+    body {
+        padding-right: 320px;
+    }
+
+    .ranking-panel {
+        right: 16px;
+        top: 420px;
+        bottom: 448px;
+        width: 270px;
+        overflow-y: auto;
+        padding: 14px 16px;
+    }
+
+    body:not(:has(.hud-shop-btn:not(.hidden))) .ranking-panel {
+        top: 130px;
+        bottom: 448px;
+    }
+
+    .ipod-panel {
+        right: 16px;
+        bottom: 90px;
+    }
+
+    .ipod-panel .ipod-device {
+        width: 220px;
+    }
+
+    .ranking-panel li {
+        font-size: 1em;
+    }
+
+    .hud-shop-btn {
+        right: 16px;
+        top: 160px;
+        width: 300px;
+        padding: 16px 20px 18px;
+        gap: 9px;
+    }
+
+    .hud-shop-title {
+        font-size: 1.7em;
+        letter-spacing: 2px;
+    }
+
+    .hud-shop-dragon {
+        max-height: 170px;
+    }
+}
+
+/* Ventanas de poca altura (no caben el dealer con dragón + ranking + iPod):
+   el dealer pasa a píldora compacta (sin dragón) y el ranking sube. */
+@media (min-width: 769px) and (max-height: 950px) {
+    .hud-shop-btn {
+        flex-direction: row;
+        top: 200px;
+        width: auto;
+        padding: 8px 16px;
+        gap: 8px;
+    }
+
+    .hud-shop-title {
+        font-size: 1.3em;
+        letter-spacing: 1px;
+    }
+
+    .hud-shop-dragon {
+        display: none;
+    }
+
+    .ranking-panel {
+        top: 250px;
+    }
+}
+
+/* Ventanas tan bajas que el ranking no cabe entre el dealer y el iPod:
+   se oculta (como en móvil) en vez de quedar aplastado y pisándose. */
+@media (min-width: 769px) and (max-height: 790px) {
+    .ranking-panel {
+        display: none;
+    }
+}
+
+/* ============================================================================
+   RESPONSIVE MÓVIL (< 768px) — 19/08, 4ª sesión
+   Se prioriza que el tablero y los controles de partida se vean y se jueguen
+   bien. En tableros grandes (18x18) el tablero puede hacer scroll horizontal.
+   ============================================================================ */
+@media (max-width: 768px) {
+
+    body {
+        padding: 126px 10px 170px;
+        justify-content: flex-start;
+    }
+
+    h1 {
+        font-size: 2em;
+        letter-spacing: 2px;
+        margin-top: 8px;
+        text-align: center;
+    }
+
+    .subtitle {
+        font-size: 0.8em;
+        margin-bottom: 14px;
+    }
+
+    .menu-card {
+        padding: 22px 16px;
+        width: 100%;
+        max-width: 100%;
+        gap: 14px;
+    }
+
+    /* --- HUD superior en DOS FILAS:
+       Fila 1: título + menú de usuario + dinero (tienda).
+       Fila 2: LopAmuletos con scroll horizontal (se ven todos los que quepan). --- */
+    .hud-header {
+        padding: 6px 10px;
+        gap: 3px 8px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .hud-title {
+        font-size: 0.7em;
+        letter-spacing: 1px;
+        white-space: nowrap;
+    }
+
+    .hud-stats {
+        gap: 8px;
+        font-size: 0.9em;
+        flex-wrap: nowrap;
+        margin-left: auto;
+        min-width: 0;
+    }
+
+    .hud-user {
+        padding: 7px 10px;
+        font-size: 1em;
+        border-radius: 18px;
+        max-width: 140px;
+    }
+
+    #hud-user {
+        min-width: 0;
+        max-width: 92px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .hud-caret {
+        font-size: 0.65em;
+    }
+
+    .hud-money {
+        font-size: 0.95em;
+        padding: 5px 10px;
+        white-space: nowrap;
+    }
+
+    .hud-amulets {
+        order: 3;
+        flex: 1 0 100%;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        min-width: 0;
+        gap: 10px;
+        min-height: 46px;
+        padding: 1px 0 3px;
+        justify-content: flex-start;
+    }
+
+    .user-dropdown {
+        max-height: calc(100vh - 140px);
+        overflow-y: auto;
+        min-width: 240px;
+    }
+
+    .amu {
+        width: 40px;
+        height: 40px;
+        font-size: 1.35em;
+        flex-shrink: 0;
+    }
+
+    .amu-lvl,
+    .amu-charge,
+    .amu-prog {
+        font-size: 0.55em;
+    }
+
+    /* Botón ▾ "ver todos" + panel de todos los LopAmuletos (móvil) */
+    .hud-amulets-all {
+        display: inline-flex;
+    }
+
+    .hud-amulets-panel {
+        top: 128px;
+        left: 8px;
+        right: 8px;
+    }
+
+    /* --- Pantalla de partida: fila de botones arriba (Menú | Reiniciar) y
+       debajo el reloj + turulos en su propia fila, SIN solaparse --- */
+    .game-controls {
+        gap: 10px;
+        margin-bottom: 12px;
+        flex-wrap: wrap;
+        justify-content: space-between;
+    }
+
+    .game-controls-left {
+        order: 1;
+    }
+
+    #reset-btn {
+        order: 2;
+    }
+
+    .game-hud-inline {
+        order: 3;
+        flex: 1 0 100%;
+        justify-content: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        min-width: 0;
+    }
+
+    .game-controls .btn-secondary {
+        font-size: 0.85em;
+        padding: 9px 13px;
+    }
+
+    .game-controls .btn-menu-arrow {
+        padding: 10px 14px;
+        font-size: 1.2em;
+    }
+
+    .hero-info-card {
+        flex-direction: column;
+        gap: 6px;
+        padding: 10px 14px;
+        max-width: 100%;
+        width: 100%;
+        margin-top: 24px;
+        margin-bottom: 40px;
+        text-align: center;
+    }
+
+    .hero-info-title {
+        font-size: 1.2em;
+        white-space: normal;
+    }
+
+    .hero-info-goal {
+        font-size: 1em;
+    }
+
+    .game-hud-row {
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+
+    .timer-big {
+        font-size: 1.15em;
+        padding: 6px 14px;
+        white-space: nowrap;
+    }
+
+    .stats-bar {
+        gap: 10px;
+        padding: 6px 14px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .stat-item {
+        font-size: 1em;
+        white-space: nowrap;
+    }
+
+    /* --- Tablero: cabe justo o hace scroll horizontal --- */
+    .board-container {
+        max-width: 100vw;
+        overflow-x: auto;
+        overflow-y: visible;
+        justify-content: flex-start;
+        gap: 10px;
+        padding-bottom: 6px;
+        -webkit-overflow-scrolling: touch;
+        flex-wrap: wrap;
+    }
+
+    /* Si el tablero cabe en la pantalla (9x9), NO se puede desplazar */
+    .board-container.board-fits {
+        overflow-x: hidden;
+        justify-content: center;
+    }
+
+    .board-container.board-fits #board {
+        margin: 0;
+    }
+
+    #board {
+        gap: 4px;
+        padding: 8px;
+        margin: 0 auto;
+    }
+
+    /* Los popups de Spiz en móvil NO son flex-siblings del tablero (eso los
+       ponía a la derecha y desplazaba el contenedor): ahora son un globo
+       pequeño FIJO arriba-izquierda, bajo el HUD, sin mover la pantalla. */
+    .spiz-popup-left,
+    .spiz-popup-right {
+        position: fixed;
+        top: 170px;
+        left: 10px;
+        right: auto;
+        width: auto;
+        max-width: min(240px, calc(100vw - 20px));
+        margin: 0;
+        order: 0;
+        flex-shrink: 1;
+        z-index: 2200;
+        padding: 10px 14px;
+        font-size: 0.8em;
+    }
+
+    .spiz-popup-word {
+        font-size: 1.4em;
+        letter-spacing: 2px;
+        margin-bottom: 2px;
+    }
+
+    /* --- Ranking lateral: en móvil es un desplegable (botón 🏆) --- */
+    .ranking-panel {
+        display: none;
+    }
+
+    .ranking-panel.ranking-open {
+        display: block;
+        position: fixed;
+        right: 10px;
+        top: 110px;
+        left: auto;
+        transform: none;
+        width: min(300px, calc(100vw - 20px));
+        max-height: calc(100vh - 140px);
+        overflow-y: auto;
+        z-index: 1500;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+    }
+
+    /* --- Modales --- */
+    .modal {
+        padding: 150px 10px 12px;
+    }
+
+    .modal-card {
+        padding: 20px 16px;
+        width: 94%;
+        max-width: 94%;
+    }
+
+    .register-banner {
+        top: 112px;
+        right: 10px;
+        max-width: 230px;
+        padding: 10px 12px;
+    }
+
+    .modal-card h2 {
+        font-size: 1.1em;
+    }
+
+    /* Tienda: apila las columnas en móvil */
+    .shop-card {
+        width: 100%;
+        max-width: 100%;
+        max-height: 92vh;
+    }
+
+    .shop-layout {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .shop-stock {
+        max-height: 42vh;
+    }
+
+    .shop-right {
+        width: 100%;
+    }
+
+    .shop-wallet-big {
+        font-size: 1.5em;
+        padding: 10px;
+    }
+
+    .shop-dragon {
+        min-height: 140px;
+    }
+
+    .shop-list {
+        max-height: 34vh;
+    }
+
+    /* --- Botones flotantes (Amigos / Chat / Ranking) --- */
+    .floating-btn {
+        font-size: 0.85em;
+        padding: 8px 12px;
+    }
+
+    .floating-chat {
+        left: 10px;
+        bottom: 10px;
+    }
+
+    .floating-requests {
+        left: 10px;
+        bottom: 64px;
+    }
+
+    .floating-ranking {
+        display: inline-flex;
+        left: 10px;
+        bottom: 118px;
+    }
+
+    /* Desplegable de Amigos: por encima del botón del ranking (118+37+11) */
+    .requests-dropdown {
+        left: 10px;
+        right: 10px;
+        bottom: 166px;
+        width: auto;
+        max-height: 46vh;
+    }
+
+    /* Con el chat abierto, el panel (68vh) cubre la parte baja: los botones
+       de Amigos y Ranking se apilan justo encima, y el desplegable encima de
+       ambos. El botón del Chat se oculta (el panel tiene su propia X). */
+    body.chat-open .floating-chat {
+        display: none;
+    }
+
+    body.chat-open .floating-requests {
+        bottom: calc(68vh + 16px);
+    }
+
+    body.chat-open .floating-ranking {
+        bottom: calc(68vh + 63px);
+    }
+
+    body.chat-open .requests-dropdown {
+        bottom: calc(68vh + 110px);
+    }
+
+    /* --- Chat a pantalla (casi) completa en móvil --- */
+    .chat-panel {
+        left: 10px;
+        right: 10px;
+        bottom: 10px;
+        width: auto;
+        height: 68vh;
+        max-height: 68vh;
+    }
+
+    /* --- Toast: ancho completo, bajo el HUD --- */
+    .toast {
+        top: 108px;
+        left: 10px;
+        right: 10px;
+        max-width: none;
+    }
+
+    /* En móvil el aviso de Lucifer baja para no pisar el tablero */
+    .toast[data-type="lucifer"] {
+        top: 172px;
+        left: 10px;
+        right: 10px;
+        max-width: none;
+    }
+
+    /* --- Resultado flotante de partida: más pequeño y compacto en móvil --- */
+    #result-modal.modal-float {
+        padding-top: 14vh;
+    }
+
+    #result-modal.modal-float .result-card {
+        width: 94%;
+        max-width: 94%;
+        max-height: 52vh;
+        padding: 16px 14px 18px;
+        font-size: 0.92em;
+    }
+
+    #result-modal.modal-float .result-card h2 {
+        font-size: 1.25em;
+    }
+
+    .result-subtitle {
+        font-size: 1em;
+    }
+
+    .result-earn-row {
+        font-size: 1em;
+    }
+
+    .result-earn-total {
+        font-size: 1.1em;
+    }
+
+    .result-section {
+        font-size: 0.8em;
+    }
+
+    .result-reopen-btn {
+        top: 14vh;
+    }
+
+    .result-new-badge {
+        font-size: 0.8em;
+    }
+
+    /* --- Volumen flotante en móvil: botón PLEGADO (círculo con el símbolo
+       del sonido) arriba-izquierda, en el hueco entre el HUD y el título.
+       No tapa la barra superior ni el título de "Buscalopas". Al tocarlo se
+       DESPLIEGA en horizontal con el deslizador y el % (se vuelve a plegar
+       tocando fuera). También está en ⚙️ Ajustes del menú. --- */
+    #volume-control-floating {
+        top: 96px;
+        left: 10px;
+        right: auto;
+        bottom: auto;
+        width: 34px;
+        height: 34px;
+        padding: 0;
+        border-radius: 50%;
+        gap: 0;
+        justify-content: center;
+        overflow: hidden;
+        opacity: 0.95;
+    }
+
+    #volume-control-floating button {
+        font-size: 1.05em;
+        line-height: 1;
+    }
+
+    #volume-control-floating input[type="range"],
+    #volume-control-floating #volume-value {
+        display: none;
+    }
+
+    #volume-control-floating.volume-expanded {
+        width: auto;
+        height: auto;
+        padding: 4px 10px;
+        border-radius: 20px;
+        gap: 7px;
+        justify-content: flex-start;
+        overflow: visible;
+    }
+
+    #volume-control-floating.volume-expanded input[type="range"],
+    #volume-control-floating.volume-expanded #volume-value {
+        display: block;
+    }
+
+    #volume-control-floating input[type="range"] {
+        width: 80px;
+    }
+
+    #volume-control-floating #volume-value {
+        font-size: 0.75em;
+        min-width: 0;
+        text-align: center;
+    }
+
+    /* --- Botones de reliquias, más pequeños y no tapan el tablero --- */
+    .relic-dragon-btn {
+        left: 10px;
+        top: 34%;
+        width: 64px;
+        height: 64px;
+    }
+
+    .relic-syntek-btn {
+        left: 10px;
+        top: calc(34% + 76px);
+        width: 64px;
+        height: 64px;
+    }
+
+    /* --- Amigos / chat: no romper en pantallas muy estrechas --- */
+    .friends-card {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .friends-list-layout {
+        flex-direction: column;
+    }
+
+    .friends-detail {
+        width: 100%;
+        border-left: none;
+        border-top: 1px dashed var(--glass-border);
+        padding-left: 0;
+        padding-top: 10px;
+    }
+
+    .friends-detail-actions {
+        flex-direction: row;
+        justify-content: center;
+    }
+
+    .confirm-bubble-card {
+        padding: 20px 18px;
+        max-width: calc(100vw - 24px);
+    }
+
+    .confirm-bubble-msg {
+        font-size: 1em;
+    }
+
+    .confirm-bubble-actions .btn-secondary {
+        padding: 14px 26px;
+    }
+
+    /* --- Tutorial del Spiz compacto en móvil --- */
+    .spiz-tutorial-card {
+        padding: 18px;
+    }
+
+    .spiz-tutorial-img {
+        width: 110px;
+        height: 110px;
+    }
+
+    .spiz-tutorial-text {
+        font-size: 1em;
+    }
+
+    /* --- Botón DEALER compacto en móvil (píldora pequeña, bajo el HUD) --- */
+    .hud-shop-btn {
+        display: flex;
+        flex-direction: row;
+        top: 112px;
+        right: 10px;
+        width: auto;
+        padding: 8px 14px;
+        gap: 8px;
+    }
+
+    .hud-shop-title {
+        font-size: 1em;
+        letter-spacing: 1px;
+    }
+
+    .hud-shop-dragon {
+        display: none;
+    }
+
+    .ranking-panel.ranking-open {
+        top: 205px;
+    }
+
+    /* --- iPod en móvil: nano 3 compacto abajo-derecha (siempre interactivo).
+           Se empequeñece para caber entre el tablero (9x9) y el volumen.
+           Con el botón "—" se minimiza a un iPod shuffle compacto. --- */
+    .ipod-panel {
+        right: 10px;
+        bottom: 52px;
+    }
+
+    .ipod-minimize-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        top: -8px;
+        right: -4px;
+        width: 22px;
+        height: 22px;
+        font-size: 0.95em;
+    }
+
+    .ipod-shuffle-body {
+        width: 92px;
+        padding: 6px 6px 8px;
+        gap: 5px;
+        border-radius: 12px;
+    }
+
+    .ipod-shuffle-clip {
+        width: 26px;
+        height: 7px;
+    }
+
+    .ipod-shuffle-screen {
+        padding: 3px 4px;
+        min-height: 17px;
+    }
+
+    .ipod-shuffle-track {
+        font-size: 0.5em;
+    }
+
+    .ipod-shuffle-controls {
+        gap: 10px;
+    }
+
+    .ipod-shuffle-btn {
+        font-size: 0.75em;
+    }
+
+    .ipod-panel .ipod-device {
+        width: 126px;
+        padding: 6px 6px 8px;
+        gap: 6px;
+        border-radius: 16px;
+    }
+
+    .ipod-panel .ipod-screen {
+        min-height: 70px;
+        padding: 4px;
+    }
+
+    /* Con el iPod comprado, la tarjeta de Farlopín aparta su texto a la
+       izquierda para no quedar tapado por el reproductor. */
+    body.ipod-owned .hero-info-card {
+        padding-right: 150px;
+    }
+
+    .ipod-panel .ipod-screen-head {
+        font-size: 0.5em;
+        padding-bottom: 2px;
+    }
+
+    .ipod-panel .ipod-track-list {
+        gap: 1px;
+    }
+
+    .ipod-panel .ipod-track-item {
+        font-size: 0.48em;
+        padding: 1px 3px;
+        gap: 3px;
+    }
+
+    .ipod-panel .ipod-now-playing {
+        font-size: 0.46em;
+    }
+
+    .ipod-panel .ipod-wheel {
+        width: 68px;
+        height: 68px;
+    }
+
+    .ipod-panel .ipod-wheel-btn {
+        padding: 2px;
+    }
+
+    .ipod-panel .ipod-wheel-top {
+        top: 2px;
+        font-size: 0.4em;
+    }
+
+    .ipod-panel .ipod-wheel-ctr {
+        width: 26px;
+        height: 26px;
+        font-size: 0.55em;
+    }
+
+    .ipod-panel .ipod-wheel-left,
+    .ipod-panel .ipod-wheel-right {
+        font-size: 0.55em;
+    }
+}
