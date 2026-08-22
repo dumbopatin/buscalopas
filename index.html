@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
     <title>Buscalopas</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -26,7 +26,7 @@
                     <button class="dd-item" data-action="friends" id="dd-friends" type="button">🤝 Amigos</button>
                     <button class="dd-item" data-action="info" id="dd-info" type="button">ℹ️ Info</button>
                     <button class="dd-item" data-action="lore" id="dd-lore" type="button">📜 Lore</button>
-                    <button class="dd-item" data-action="notes" id="dd-notes" type="button">📝 Notas e ideas</button>
+                    <button class="dd-item" data-action="suggestions" id="dd-suggestions" type="button">💡 Sugerencias</button>
                     <button class="dd-item" data-action="settings" id="dd-settings" type="button">⚙️ Ajustes</button>
                     <button class="dd-item dd-logout" data-action="logout" id="dd-logout" type="button">🚪 Cerrar sesión</button>
                 </div>
@@ -196,11 +196,13 @@
                 <input type="password" id="name-pass-input" class="hidden" maxlength="40" placeholder="Contraseña de este lopero" autocomplete="current-password" name="password">
                 <p id="user-error" class="modal-error hidden"></p>
                 <div class="modal-actions">
-                    <button id="user-clear-btn" class="btn-secondary" type="button">🗑️ Borrar</button>
-                    <button id="user-gen-btn" class="btn-secondary" type="button">🎲 Generar lopero</button>
+                    <button id="user-clear-btn" class="btn-neon btn-neon-black" type="button">Borrar</button>
+                    <button id="user-gen-btn" class="btn-neon btn-neon-black" type="button">Generar</button>
                 </div>
-                <button id="user-confirm-btn" class="btn-start" type="submit">ENTRAR</button>
-                <button id="user-register-btn" class="btn-secondary" type="button">🆕 Registrarse</button>
+                <div class="modal-actions modal-actions-main">
+                    <button id="user-confirm-btn" class="btn-start" type="submit">ENTRAR</button>
+                    <button id="user-register-btn" class="btn-neon btn-neon-black" type="button">Registrarse</button>
+                </div>
             </form>
         </div>
     </div>
@@ -225,6 +227,7 @@
             <button id="info-close-btn" class="modal-x" title="Cerrar">✕</button>
             <h2>ℹ️ Info</h2>
             <p class="info-user" id="info-user">—</p>
+            <p class="info-version">⚡ Buscalopas <span id="info-version"></span> by dumbopatin</p>
             <div class="info-stats">
                 <div class="info-row"><span>Partidas jugadas</span><span id="info-games">0</span></div>
                 <div class="info-row"><span>Victorias</span><span id="info-wins">0</span></div>
@@ -246,8 +249,7 @@
     <div id="shop-modal" class="modal hidden">
         <div class="modal-card shop-card">
             <button id="shop-close-btn" class="modal-x" title="Cerrar">✕</button>
-            <h2>🐉 Tienda del Dragon Narco</h2>
-            <p class="shop-dragon-talk">"Ojos azules, cartera llena. ¿Qué quieres probar hoy, compa?"</p>
+            <h2>🐉 Tienda</h2>
             <div class="shop-layout">
                 <div class="shop-stock">
                     <p class="shop-today">🛒 Stock de hoy — <span id="shop-date"></span></p>
@@ -425,14 +427,15 @@
         </div>
     </div>
 
-    <div id="notes-modal" class="modal hidden">
+    <div id="suggestions-modal" class="modal hidden">
         <div class="modal-card notes-card">
-            <button id="notes-close-btn" class="modal-x" title="Cerrar">✕</button>
-            <h2>📝 Notas e ideas</h2>
-            <p>Apuntes que persisten entre sesiones. Guarda aquí tus proyectos futuros.</p>
-            <textarea id="notes-textarea" maxlength="8000" placeholder="Escribe aquí tus ideas, plan de futuro (multijugador, playlists, lobbies, chats...), etc." autocomplete="off"></textarea>
-            <p id="notes-status" class="notes-status"></p>
-            <button id="notes-save-btn" class="btn-start" type="button">💾 Guardar notas</button>
+            <button id="suggestions-close-btn" class="modal-x" title="Cerrar">✕</button>
+            <h2>💡 Sugerencias</h2>
+            <p>Opiniones, recomendaciones y cosas que te hayan pasado. ¡Cuéntanos lo que te gustaría ver!</p>
+            <textarea id="suggestions-textarea" maxlength="8000" placeholder="Escribe aquí lo que nos quieras decir: ideas, recomendaciones, bugs, anécdotas..." autocomplete="off"></textarea>
+            <p id="suggestions-status" class="notes-status"></p>
+            <button id="suggestions-save-btn" class="btn-start" type="button">💌 Enviar sugerencia</button>
+            <div id="suggestions-list" class="suggestions-list hidden"></div>
         </div>
     </div>
 

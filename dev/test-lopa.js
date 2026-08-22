@@ -74,7 +74,7 @@ function apiHandler(route) {
     if (p === '/api/player') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ name: PLAYER, score: null, total: null, pass: null, stats: null }) });
     if (p === '/api/players') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ names: KNOWN_USERS }) });
     if (p === '/api/score') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true }) });
-    if (p === '/api/notes') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ note: '' }) });
+    if (p === '/api/suggestions') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ list: [] }) });
     if (p === '/api/user') {
         const name = qs.get('name') || '';
         return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ exists: KNOWN_USERS.includes(name) }) });

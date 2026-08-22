@@ -6,7 +6,7 @@ const PORT = process.env.PORT || 3000;
 const DATA_DIR = __dirname;
 const ROOT = path.join(__dirname, '..');
 const SCORES_FILE = path.join(DATA_DIR, 'scores.json');
-const NOTES_FILE = path.join(DATA_DIR, 'notes.json');
+const SUGGESTIONS_FILE = path.join(DATA_DIR, 'suggestions.json');
 const FRIENDS_FILE = path.join(DATA_DIR, 'friends.json');
 const CHAT_FILE = path.join(DATA_DIR, 'chat.json');
 
@@ -234,18 +234,32 @@ run();
         return;
     }
 
-    if (url.pathname === '/api/notes' && req.method === 'GET') {
-        let note = '';
-        try { note = fs.readFileSync(NOTES_FILE, 'utf8'); } catch (e) {}
-        sendJSON(res, 200, { note });
+    // Buzón de sugerencias (todos envían, cualquiera lee: el jefe las ve)
+    if (url.pathname === '/api/suggestions' && req.method === 'GET') {
+        let list = [];
+        try { list = JSON.parse(fs.readFileSync(SUGGESTIONS_FILE, 'utf8')); } catch (e) {}
+        if (!Array.isArray(list)) list = [];
+        sendJSON(res, 200, { list: list.slice(-200).reverse() });
         return;
     }
 
-    if (url.pathname === '/api/notes' && req.method === 'POST') {
+    if (url.pathname === '/api/suggestions' && req.method === 'POST') {
         const body = await readBody(req);
-        const note = (body && typeof body.note === 'string') ? body.note : '';
+        const note = (body && typeof body.note === 'string') ? body.note.trim().slice(0, 8000) : '';
+        if (!note) {
+            sendJSON(res, 400, { error: 'Sugerencia vacía' });
+            return;
+        }
+        const username = (body && typeof body.username === 'string' && body.username.trim())
+            ? body.username.trim().slice(0, 30)
+            : 'anónimo';
+        let list = [];
+        try { list = JSON.parse(fs.readFileSync(SUGGESTIONS_FILE, 'utf8')); } catch (e) {}
+        if (!Array.isArray(list)) list = [];
+        list.push({ username, note, created_at: Date.now() });
+        if (list.length > 500) list = list.slice(-500);
         try {
-            fs.writeFileSync(NOTES_FILE, note);
+            fs.writeFileSync(SUGGESTIONS_FILE, JSON.stringify(list));
             sendJSON(res, 200, { ok: true });
         } catch (e) {
             sendJSON(res, 500, { error: 'No se pudo guardar' });

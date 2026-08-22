@@ -177,6 +177,34 @@ select option {
     box-shadow: 0 0 25px rgba(255, 112, 166, 0.6);
 }
 
+/* Botones neón del login: mismo corte que ENTRAR pero MÁS BAJITOS y todos
+   del mismo tamaño. ENTRAR en morado; el resto en negro con el mismo estilo. */
+.btn-neon {
+    color: white;
+    border: none;
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: 1.05em;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: var(--transition);
+    margin-top: 10px;
+}
+
+.btn-neon:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.15);
+}
+
+.btn-neon-black {
+    background: linear-gradient(180deg, #221f33 0%, #0d0c18 100%);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    box-shadow: 0 0 14px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
 /* --- PANTALLA DE JUEGO --- */
 .game-controls {
     width: 100%;
@@ -373,7 +401,7 @@ select option {
 .cell {
     width: var(--cell-size, 52px);
     height: var(--cell-size, 52px);
-    background: #1b1a27;
+    background: linear-gradient(180deg, #262538 0%, #1b1a27 70%);
     border-radius: 8px;
     display: flex;
     align-items: center;
@@ -387,20 +415,28 @@ select option {
     -webkit-user-select: none;     /* Evita selección de texto en iOS/Safari */
     -webkit-touch-callout: none;   /* Evita el menú de "Copiar/Guardar" en iOS */
     touch-action: manipulation;    /* Mejora la respuesta táctil en Android/iOS */
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 2px 6px rgba(0, 0, 0, 0.45);
     overflow: hidden;
 }
 
-.cell:hover:not(.revealed) {
-    background: #2b2a40;
+/* Celda "pisada" al deslizar el dedo/ratón sobre el tablero (también al
+   pasar el ratón): resalta la casilla bajo el puntero mientras te mueves. */
+.cell:hover:not(.revealed),
+.cell.board-step:not(.revealed) {
+    background: linear-gradient(180deg, #31414f 0%, #25323f 100%);
     transform: scale(1.08);
     z-index: 2;
     border-color: var(--accent-cyan);
+    box-shadow: 0 0 14px rgba(76, 201, 240, 0.55), inset 0 0 10px rgba(76, 201, 240, 0.25);
 }
 
+/* Casilla ya libre (revelada): aspecto "excavado/hundido", en claro
+   contraste con las que aún no se han pulsado (en relieve). */
 .cell.revealed {
-    background: #141320;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: #0c0b14;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.65);
     cursor: default;
 }
 
@@ -1094,7 +1130,7 @@ select option {
     line-height: 1.4;
 }
 
-#notes-textarea {
+#suggestions-textarea {
     background: #0f0e17;
     border: 1px solid var(--accent-purple);
     color: var(--text-main);
@@ -1110,7 +1146,7 @@ select option {
     transition: var(--transition);
 }
 
-#notes-textarea:focus {
+#suggestions-textarea:focus {
     border-color: var(--accent-pink);
     box-shadow: 0 0 15px rgba(255, 112, 166, 0.3);
 }
@@ -1120,6 +1156,47 @@ select option {
     font-size: 0.85em;
     color: var(--accent-cyan);
     font-weight: 600;
+}
+
+/* Buzón de sugerencias (solo lo ve el jefe) */
+.suggestions-list {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 12px;
+    max-height: 38vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    text-align: left;
+}
+
+.sugg-item {
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--glass-border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.sugg-who {
+    color: var(--accent-pink);
+    font-weight: 700;
+    font-size: 0.8em;
+}
+
+.sugg-text {
+    color: var(--text-main);
+    font-size: 0.95em;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.sugg-empty {
+    color: var(--text-dim);
+    font-size: 0.9em;
 }
 
 .hud-user {
@@ -1336,8 +1413,26 @@ select option {
     gap: 10px;
 }
 
-.modal-actions .btn-secondary {
+.modal-actions .btn-secondary,
+.modal-actions .btn-neon {
     flex: 1;
+}
+
+/* ENTRAR + Registrarse en la misma fila: mismos tamaño y margen */
+.modal-card .modal-actions-main .btn-start,
+.modal-card .modal-actions-main .btn-neon {
+    margin-top: 0;
+    flex: 1;
+}
+
+/* En el login todos los botones más bajitos, del mismo tamaño y a una sola
+   línea (si el texto se parte en dos, el botón crece y queda "grueso"). */
+#user-modal .modal-card .btn-start,
+#user-modal .btn-neon {
+    padding: 12px 16px;
+    font-size: 1.05em;
+    margin-top: 0;
+    white-space: nowrap;
 }
 
 .modal-card h2 {
@@ -2183,6 +2278,16 @@ select option {
     color: var(--accent-pink);
     font-weight: 700;
     font-size: 1.1em;
+}
+
+.info-version {
+    color: var(--text-dim);
+    font-size: 0.9em;
+}
+
+.info-version #info-version {
+    color: var(--accent-cyan);
+    font-weight: 700;
 }
 
 #info-modal .modal-card {
@@ -4026,6 +4131,26 @@ body.syntek-immunity #board {
         padding: 150px 10px 12px;
     }
 
+    /* En el login (y mientras el teclado esté abierto) la barra de estado se
+       compacta a UNA fila: no hay amuletos que ver y sobra espacio. */
+    body:has(#user-modal:not(.hidden)) .hud-amulets,
+    body:has(#pass-modal:not(.hidden)) .hud-amulets,
+    .kb-open .hud-amulets {
+        display: none;
+    }
+
+    /* Con el teclado abierto el modal se compacta y se pega a la barra
+       (la clase .kb-open la pone JS al detectar el viewport encogido, y la
+       quita en cuanto el teclado se cierra: el modal vuelve solo). */
+    .kb-open .modal {
+        padding-top: 96px;
+    }
+
+    .kb-open .modal .modal-card {
+        padding: 14px 14px 16px;
+        gap: 12px;
+    }
+
     .modal-card {
         padding: 20px 16px;
         width: 94%;
@@ -4043,37 +4168,82 @@ body.syntek-immunity #board {
         font-size: 1.1em;
     }
 
-    /* Tienda: apila las columnas en móvil */
+    /* Tienda en móvil: TODO en una sola columna y un único scroll (el del
+       modal, sin scrolls anidados). El dragón arriba y más pequeño; el iPod
+       se une al final del stock. (.shop-right con display:contents suelta
+       sus hijos para poder reordenarlos con order.) */
     .shop-card {
         width: 100%;
         max-width: 100%;
-        max-height: 92vh;
+        max-height: calc(100vh - 170px);
     }
 
     .shop-layout {
+        flex: 1;
+        min-height: 0;
         flex-direction: column;
         gap: 12px;
     }
 
-    .shop-stock {
-        max-height: 42vh;
+    .shop-right {
+        display: contents;
     }
 
-    .shop-right {
-        width: 100%;
+    .shop-dragon {
+        order: -2;
+        flex: 0 0 auto;
+        min-height: 0;
+        padding: 0;
+    }
+
+    .shop-dragon img {
+        height: 140px;
+        width: auto;
+        max-width: 100%;
+        object-fit: contain;
+        border-radius: 16px;
     }
 
     .shop-wallet-big {
+        order: -1;
         font-size: 1.5em;
         padding: 10px;
     }
 
-    .shop-dragon {
-        min-height: 140px;
+    /* La lista del stock es el ÚNICO scrolleable de la tienda: con barra de
+       scroll visible a la derecha para que se entienda que hay más contenido
+       (sin scrolls anidados). */
+    .shop-stock {
+        order: 1;
+        flex: 1;
+        min-height: 0;
+        max-height: none;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: var(--accent-purple) rgba(255, 255, 255, 0.06);
+    }
+
+    .shop-stock::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .shop-stock::-webkit-scrollbar-thumb {
+        background: var(--accent-purple);
+        border-radius: 4px;
+    }
+
+    .shop-stock::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.06);
+    }
+
+    .shop-ipod-slot {
+        order: 2;
+        flex-shrink: 0;
     }
 
     .shop-list {
-        max-height: 34vh;
+        max-height: none;
+        overflow: visible;
     }
 
     /* --- Botones flotantes (Amigos / Chat / Ranking) --- */
@@ -4152,9 +4322,14 @@ body.syntek-immunity #board {
         max-width: none;
     }
 
-    /* --- Resultado flotante de partida: más pequeño y compacto en móvil --- */
+    /* --- Resultado flotante de partida: en móvil queda FIJO por debajo de los
+       botones de Menú/Reiniciar (no se arrastra, el asa se oculta) --- */
     #result-modal.modal-float {
-        padding-top: 14vh;
+        padding-top: 30vh;
+    }
+
+    #result-modal.modal-float .result-drag-handle {
+        display: none;
     }
 
     #result-modal.modal-float .result-card {
@@ -4186,7 +4361,7 @@ body.syntek-immunity #board {
     }
 
     .result-reopen-btn {
-        top: 14vh;
+        top: 30vh;
     }
 
     .result-new-badge {
@@ -4199,7 +4374,7 @@ body.syntek-immunity #board {
        POR DEBAJO de la barra de estados y los LopAmuletos y no pillarlos al
        tocar. También está en ⚙️ Ajustes del menú. --- */
     #volume-control-floating {
-        top: 100px;
+        top: 112px;
         left: 10px;
         right: auto;
         bottom: auto;
@@ -4211,11 +4386,7 @@ body.syntek-immunity #board {
         justify-content: center;
         overflow: hidden;
         opacity: 0.95;
-        z-index: 1700;
-    }
-
-    body:has(#game-screen:not(.hidden)) #volume-control-floating {
-        top: 112px;
+        z-index: 2100;
     }
 
     #volume-control-floating button {

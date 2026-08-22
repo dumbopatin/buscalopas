@@ -195,7 +195,7 @@ const ddPassword = document.getElementById('dd-password');
 const ddInfo = document.getElementById('dd-info');
 const ddLogout = document.getElementById('dd-logout');
 const ddLore = document.getElementById('dd-lore');
-const ddNotes = document.getElementById('dd-notes');
+const ddSuggestions = document.getElementById('dd-suggestions');
 const passModalEl = document.getElementById('pass-modal');
 const passUserEl = document.getElementById('pass-user');
 const passInputEl = document.getElementById('pass-input');
@@ -246,11 +246,12 @@ const resultAmuletsWrapEl = document.getElementById('result-amulets-wrap');
 const resultAmuletsEl = document.getElementById('result-amulets');
 const resultCloseXEl = document.getElementById('result-close-x');
 const resultReopenBtnEl = document.getElementById('result-reopen-btn');
-const notesModalEl = document.getElementById('notes-modal');
-const notesCloseBtn = document.getElementById('notes-close-btn');
-const notesTextareaEl = document.getElementById('notes-textarea');
-const notesSaveBtn = document.getElementById('notes-save-btn');
-const notesStatusEl = document.getElementById('notes-status');
+const suggestionsModalEl = document.getElementById('suggestions-modal');
+const suggestionsCloseBtn = document.getElementById('suggestions-close-btn');
+const suggestionsTextareaEl = document.getElementById('suggestions-textarea');
+const suggestionsSaveBtn = document.getElementById('suggestions-save-btn');
+const suggestionsStatusEl = document.getElementById('suggestions-status');
+const suggestionsListEl = document.getElementById('suggestions-list');
 const ddFriends = document.getElementById('dd-friends');
 const friendsModalEl = document.getElementById('friends-modal');
 const friendsCloseBtn = document.getElementById('friends-close-btn');
@@ -779,7 +780,8 @@ async function generateLopero() {
         userInputEl.value = name || '';
         resetNamePassword();
         clearModalError();
-        userInputEl.focus();
+        // Sin focus() a propósito: si el input ya tenía el foco se queda y si
+        // no, no se abre el teclado (evita el "flash" de abrir/cerrar).
     } catch (e) {
         showModalError('No se pudieron cargar los nombres');
     }
@@ -826,7 +828,7 @@ async function confirmUser() {
                 }
                 setUsername(canonical);
                 setLoggedIn(false);
-                onUserReady();
+                onUserReady(true);
             }
         } else {
             if (isDeity(typed)) {
@@ -835,7 +837,7 @@ async function confirmUser() {
             }
             setUsername(name);
             setLoggedIn(false);
-            onUserReady();
+            onUserReady(true);
         }
     } catch (e) {
         if (name.toLowerCase() === currentName.toLowerCase() && isLoggedIn()) {
@@ -848,7 +850,7 @@ async function confirmUser() {
         }
         setUsername(name);
         setLoggedIn(false);
-        onUserReady();
+        onUserReady(true);
     }
 }
 
@@ -856,7 +858,7 @@ function finishLogin(name) {
     setUsername(name);
     setLoggedIn(true);
     updateDropdown();
-    onUserReady();
+    onUserReady(true);
 }
 
 // Botón "Registrarse" del formulario inicial: comprueba que el nombre esté libre
@@ -895,11 +897,15 @@ function renderRegisterBanner() {
 // --- Desplegable del usuario ---
 function updateDropdown() {
     const logged = isLoggedIn();
-    ddName.classList.toggle('hidden', logged);
-    ddPassword.classList.toggle('hidden', logged);
+    const hasName = !!getUsername();
+    // Sin nombre (pantalla de login) no tienen sentido: cambiar de usuario,
+    // crear contraseña ni el lore. Con nombre (aunque sin contraseña) sí.
+    ddName.classList.toggle('hidden', logged || !hasName);
+    ddPassword.classList.toggle('hidden', logged || !hasName);
     ddFriends.classList.toggle('hidden', !logged);
     ddInfo.classList.toggle('hidden', !logged);
-    ddLogout.classList.toggle('hidden', !getUsername());
+    ddLore.classList.toggle('hidden', !hasName);
+    ddLogout.classList.toggle('hidden', !hasName);
     renderChatOpenButton();
     renderRegisterBanner();
 }
@@ -1092,6 +1098,7 @@ async function doCreatePassword(name, p1) {
     hideConfirmBubble();
     showToast(UI.cuentaCreada || 'Contraseña creada. ¡Sesión iniciada!');
     offerPasswordSave(name, p1, true);
+    showMenu();
 }
 
 // Dispara el "guardar contraseña" del navegador SOLO en el momento correcto:
@@ -1135,10 +1142,6 @@ function offerPasswordSave(username, password, isNew) {
 
 async function transferUserData(oldName, newName) {
     if (!supabaseClient || oldName === newName) return;
-    try {
-        const { data: nd } = await supabaseClient.from('notes').select('note').eq('username', oldName).maybeSingle();
-        if (nd && nd.note) await supabaseClient.from('notes').upsert({ username: newName, note: nd.note }, { onConflict: 'username' });
-    } catch (e) {}
     try {
         const [f1, f2] = await Promise.all([
             supabaseClient.from('friendships').select('user_a,user_b').eq('user_a', oldName),
@@ -1198,6 +1201,8 @@ function openInfoModal() {
         return;
     }
     infoUserEl.textContent = getUsername();
+    const infoVersionEl = document.getElementById('info-version');
+    if (infoVersionEl) infoVersionEl.textContent = window.APP_VERSION || '2.5';
     const s = statsData;
     infoGamesEl.textContent = s.games || 0;
     infoWinsEl.textContent = s.wins || 0;
@@ -1572,77 +1577,93 @@ function closeAmuletModal() {
     }
 }
 
-// --- Notas e ideas persistentes ---
-async function loadNotes() {
-    if (!notesTextareaEl) return;
+// --- Sugerencias: buzón compartido (llegan al jefe) ---
+async function loadSuggestionsList() {
+    if (!suggestionsListEl) return;
+    let list = [];
     if (supabaseClient) {
         try {
             const { data, error } = await supabaseClient
-                .from('notes')
-                .select('note')
-                .eq('username', getUsername())
-                .maybeSingle();
+                .from('suggestions')
+                .select('username,note,created_at')
+                .order('created_at', { ascending: false })
+                .limit(100);
             if (error) throw error;
-            notesTextareaEl.value = (data && typeof data.note === 'string') ? data.note : (localStorage.getItem('buscalopas_notes') || '');
-            setNotesStatus(data && data.note ? 'Notas cargadas de Supabase' : 'Sin notas en Supabase');
-        } catch (e) {
-            notesTextareaEl.value = localStorage.getItem('buscalopas_notes') || '';
-            setNotesStatus('Modo local (Supabase no disponible)');
-        }
+            list = data || [];
+        } catch (e) {}
+    } else {
+        try {
+            const res = await fetch('/api/suggestions');
+            if (res.ok) {
+                const d = await res.json();
+                list = Array.isArray(d.list) ? d.list : [];
+            }
+        } catch (e) {}
+    }
+    if (!list.length) {
+        try { list = JSON.parse(localStorage.getItem('buscalopas_suggestions') || '[]'); } catch (e) {}
+    }
+    suggestionsListEl.innerHTML = list.length
+        ? list.map(s => `<div class="sugg-item"><span class="sugg-who">${escapeHtml(s.username || 'anónimo')}</span><span class="sugg-text">${escapeHtml(s.note)}</span></div>`).join('')
+        : '<div class="sugg-empty">Todavía no hay sugerencias.</div>';
+}
+
+function openSuggestionsModal() {
+    closeDropdown();
+    if (suggestionsTextareaEl) suggestionsTextareaEl.value = '';
+    if (suggestionsListEl) suggestionsListEl.classList.add('hidden');
+    // El jefe (Lucifer) ve el buzón completo; el resto solo escribe.
+    if (isDeity(getUsername() || '')) {
+        if (suggestionsListEl) suggestionsListEl.classList.remove('hidden');
+        loadSuggestionsList();
+    }
+    suggestionsModalEl.classList.remove('hidden');
+    setTimeout(() => { if (suggestionsTextareaEl) suggestionsTextareaEl.focus(); }, 50);
+}
+
+function setSuggestionsStatus(msg) {
+    if (suggestionsStatusEl) {
+        suggestionsStatusEl.textContent = msg;
+        clearTimeout(suggestionsStatusEl._t);
+        suggestionsStatusEl._t = setTimeout(() => { suggestionsStatusEl.textContent = ''; }, 3000);
+    }
+}
+
+async function sendSuggestion() {
+    const note = suggestionsTextareaEl ? suggestionsTextareaEl.value.trim() : '';
+    if (!note) {
+        setSuggestionsStatus('Escribe algo antes de enviar');
         return;
     }
-    try {
-        const res = await fetch('/api/notes');
-        if (!res.ok) throw new Error('sin servidor');
-        const data = await res.json();
-        if (typeof data.note === 'string') notesTextareaEl.value = data.note;
-        setNotesStatus('Notas cargadas del servidor');
-    } catch (e) {
-        notesTextareaEl.value = localStorage.getItem('buscalopas_notes') || '';
-        setNotesStatus('Modo local (sin servidor)');
-    }
-}
-
-function openNotesModal() {
-    closeDropdown();
-    loadNotes();
-    notesModalEl.classList.remove('hidden');
-    setTimeout(() => notesTextareaEl.focus(), 50);
-}
-
-function setNotesStatus(msg) {
-    if (notesStatusEl) {
-        notesStatusEl.textContent = msg;
-        clearTimeout(notesStatusEl._t);
-        notesStatusEl._t = setTimeout(() => { notesStatusEl.textContent = ''; }, 3000);
-    }
-}
-
-async function saveNotes() {
-    const note = notesTextareaEl ? notesTextareaEl.value : '';
-    localStorage.setItem('buscalopas_notes', note);
+    const username = getUsername() || 'anónimo';
     if (supabaseClient) {
         try {
-            const { error } = await supabaseClient
-                .from('notes')
-                .upsert({ username: getUsername(), note }, { onConflict: 'username' });
+            const { error } = await supabaseClient.from('suggestions').insert({ username, note });
             if (error) throw error;
-            setNotesStatus('💾 Notas guardadas');
+            setSuggestionsStatus('💌 ¡Gracias! Tu sugerencia ha llegado al jefe');
+            if (suggestionsTextareaEl) suggestionsTextareaEl.value = '';
+            if (isDeity(username)) loadSuggestionsList();
+            return;
         } catch (e) {
-            setNotesStatus('Guardado solo en local (Supabase no disponible)');
+            setSuggestionsStatus('Sin Supabase: guardando en local');
         }
-        return;
     }
     try {
-        const res = await fetch('/api/notes', {
+        const res = await fetch('/api/suggestions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ note })
+            body: JSON.stringify({ username, note })
         });
         if (!res.ok) throw new Error('sin servidor');
-        setNotesStatus('💾 Notas guardadas');
+        setSuggestionsStatus('💌 ¡Gracias! Tu sugerencia ha llegado al jefe');
+        if (suggestionsTextareaEl) suggestionsTextareaEl.value = '';
     } catch (e) {
-        setNotesStatus('Guardado solo en local (sin servidor)');
+        try {
+            const list = JSON.parse(localStorage.getItem('buscalopas_suggestions') || '[]');
+            list.push({ username, note, created_at: Date.now() });
+            localStorage.setItem('buscalopas_suggestions', JSON.stringify(list.slice(-200)));
+            setSuggestionsStatus('Guardado solo en local (sin servidor)');
+        } catch (e2) {}
     }
 }
 
@@ -3664,7 +3685,7 @@ async function loadRanking() {
     }
 }
 
-function onUserReady() {
+function onUserReady(goMenu = false) {
     hideUserModal();
     updateWalletDisplay();
     updateDropdown();
@@ -3673,6 +3694,9 @@ function onUserReady() {
     loadPlayerFromServer();
     loadRanking();
     syncRealtime();
+    // Al iniciar sesión SIEMPRE se va al menú principal: nunca se vuelve a la
+    // pantalla (partida en curso, etc.) donde se quedó el usuario anterior.
+    if (goMenu) showMenu();
 }
 
 function isMobileView() {
@@ -4388,6 +4412,51 @@ function initMobileLongPress() {
     boardEl.addEventListener('pointerleave', cancelLongPress);
 }
 
+// Efecto de "pisar": la casilla bajo el dedo (o el ratón) se resalta mientras
+// te deslizas por el tablero, para notar dónde vas a tocar antes de pulsar.
+function initBoardStepEffect() {
+    if (!boardEl) return;
+    let lastStepCell = null;
+    const clearStep = () => {
+        if (lastStepCell) {
+            lastStepCell.classList.remove('board-step');
+            lastStepCell = null;
+        }
+    };
+    const stepTo = (el) => {
+        const cell = el && el.closest ? el.closest('.cell') : null;
+        if (cell && !cell.classList.contains('revealed')) {
+            if (lastStepCell && lastStepCell !== cell) lastStepCell.classList.remove('board-step');
+            cell.classList.add('board-step');
+            lastStepCell = cell;
+        } else {
+            clearStep();
+        }
+    };
+    boardEl.addEventListener('pointermove', (e) => stepTo(e.target));
+    boardEl.addEventListener('pointerdown', (e) => stepTo(e.target));
+    boardEl.addEventListener('pointerleave', clearStep);
+    boardEl.addEventListener('pointerup', clearStep);
+    boardEl.addEventListener('pointercancel', clearStep);
+}
+
+// Detecta si el teclado del móvil está abierto: con el teclado el viewport se
+// encoge, y al cerrarse se restaura. Se marca .kb-open en <body> mientras esté
+// abierto (los modales se compactan con CSS) y se QUITA en cuanto se cierra,
+// aunque el input conserve el foco: el modal vuelve a su sitio solo.
+function initKeyboardDetect() {
+    const KB_MIN_DROP = 130;
+    let baseline = window.innerHeight;
+    const update = () => {
+        const h = window.innerHeight;
+        if (h > baseline) baseline = h;
+        document.body.classList.toggle('kb-open', h < baseline - KB_MIN_DROP);
+    };
+    window.addEventListener('resize', update);
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', update);
+    update();
+}
+
 function checkTuruloWin() {
     return mines.every(({r, c}) => turulos[r][c] === true
         || (milagroDisarmed && milagroDisarmed[r + '-' + c])
@@ -4531,6 +4600,10 @@ function saveResultPos(p) {
 }
 
 function applyResultPos(p) {
+    // En móvil la tarjeta queda fija en su posición por CSS (no se arrastra):
+    // se ignora la posición guardada, que además podía dejar la tarjeta
+    // fuera de sitio o pisando los botones tras un resize.
+    if (isMobileView()) p = { x: 0, y: 0 };
     const card = resultModalEl ? resultModalEl.querySelector('.result-card') : null;
     if (card) {
         card.style.transform = `translate(${p.x}px, ${p.y}px)`;
@@ -4544,6 +4617,8 @@ function applyResultPos(p) {
 function startResultDrag(el, excludeInteractive) {
     if (!el) return;
     el.addEventListener('pointerdown', (e) => {
+        // En móvil no se arrastra la tarjeta: se mantiene la posición fija.
+        if (isMobileView()) return;
         if (e.button !== undefined && e.button !== 0) return;
         if (excludeInteractive && e.target.closest('button, a, input, textarea, select')) return;
         const pos = loadResultPos();
@@ -4672,11 +4747,16 @@ applyResultPos(loadResultPos());
 // Pulsación larga en móvil para poner/quitar turulos
 initMobileLongPress();
 
+// Efecto "pisar": resalta la casilla bajo el dedo/ratón al deslizar
+initBoardStepEffect();
+
+// Teclado del móvil: compacta los modales mientras esté abierto
+initKeyboardDetect();
+
 const hudTitleEl = document.querySelector('.hud-title');
 const hudTitleVersionEl = document.getElementById('hud-title-version');
 if (hudTitleVersionEl) hudTitleVersionEl.textContent = window.APP_VERSION || '2.3';
 if (hudTitleEl) {
-    hudTitleEl.addEventListener('click', showMenu);
     hudTitleEl.addEventListener('mouseenter', () => hudTitleEl.classList.add('title-clickable'));
     hudTitleEl.addEventListener('mouseleave', () => hudTitleEl.classList.remove('title-clickable'));
 }
@@ -4695,16 +4775,22 @@ if (userInputEl) {
     userInputEl.addEventListener('input', resetNamePassword);
 }
 
+// Al tocar Borrar/Generar el botón no debe quitarle el foco al input: si el
+// teclado está abierto se queda abierto y si está cerrado no se abre (sin
+// "flash" de abrir/cerrar ni saltos del formulario).
+const preventFocusSteal = (e) => e.preventDefault();
+
 if (userClearBtn) {
+    userClearBtn.addEventListener('pointerdown', preventFocusSteal);
     userClearBtn.addEventListener('click', () => {
         userInputEl.value = '';
         resetNamePassword();
         clearModalError();
-        userInputEl.focus();
     });
 }
 
 if (userGenBtn) {
+    userGenBtn.addEventListener('pointerdown', preventFocusSteal);
     userGenBtn.addEventListener('click', generateLopero);
 }
 
@@ -4775,7 +4861,7 @@ const CLICK_OUTSIDE_MODALS = {
     'info-modal': () => infoModalEl.classList.add('hidden'),
     'friends-modal': () => { friendsModalEl.classList.add('hidden'); hideConfirmBubble(); },
     'player-modal': () => playerModalEl.classList.add('hidden'),
-    'notes-modal': () => notesModalEl.classList.add('hidden'),
+    'suggestions-modal': () => suggestionsModalEl.classList.add('hidden'),
     'settings-modal': () => settingsModalEl.classList.add('hidden'),
     'shop-modal': () => shopModalEl.classList.add('hidden'),
     'amulet-modal': () => closeAmuletModal()
@@ -4785,6 +4871,17 @@ for (const [id, closeFn] of Object.entries(CLICK_OUTSIDE_MODALS)) {
     if (!el) continue;
     el.addEventListener('mousedown', (e) => {
         if (e.target === el) closeFn();
+    });
+}
+
+// Clic en el título "Buscalopas": cierra cualquier modal/globo que haya abierto
+// (tienda, notas, panel de LopAmuletos, chat...) y va al menú principal.
+if (hudTitleEl) {
+    hudTitleEl.addEventListener('click', () => {
+        for (const closeFn of Object.values(CLICK_OUTSIDE_MODALS)) closeFn();
+        closeMobilePanels();
+        closeHudAmuletsPanel();
+        showMenu();
     });
 }
 
@@ -4991,9 +5088,9 @@ if (amuletToggleBtn) {
 }
 
 // Notas
-if (ddNotes) ddNotes.addEventListener('click', openNotesModal);
-if (notesCloseBtn) notesCloseBtn.addEventListener('click', () => notesModalEl.classList.add('hidden'));
-if (notesSaveBtn) notesSaveBtn.addEventListener('click', saveNotes);
+if (ddSuggestions) ddSuggestions.addEventListener('click', openSuggestionsModal);
+if (suggestionsCloseBtn) suggestionsCloseBtn.addEventListener('click', () => suggestionsModalEl.classList.add('hidden'));
+if (suggestionsSaveBtn) suggestionsSaveBtn.addEventListener('click', sendSuggestion);
 
 // Pantalla de resultado de partida (flotante, no bloquea: Reiniciar/Menú siguen usables)
 if (resultCloseXEl) resultCloseXEl.addEventListener('click', hideResultCard);

@@ -1,5 +1,5 @@
 ================================================================================
-BUSCALOPAS 2.0 — RESUMEN DE CONTEXTO PARA NUEVA SESIÓN (condensado 21/08)
+BUSCALOPAS 2.0 — RESUMEN DE CONTEXTO PARA NUEVA SESIÓN (condensado 22/08)
 ================================================================================
 Juego tipo buscaminas "Cyber-Lopera" (móvil + desktop). Repo git (desde 21/08).
 Histórico detallado de sesiones previas: dev/resumen-historico-2026-08-20.txt
@@ -37,7 +37,7 @@ TRABAJAR / VERIFICAR (regla del proyecto)
 - Tras tocar economía/dificultad: `cd dev && npm run balance`.
 - Verificación sintaxis tras cada cambio: `node --check game.js` (raíz) y
   `node --check server.js`, `node --check test-lopa.js`, `node --check balance-check.js` (dev/).
-- La versión vive en config.js: `window.APP_VERSION` (ahora '2.3'). Solo se toca ahí.
+- La versión vive en config.js: `window.APP_VERSION` (ahora '2.5'). Solo se toca ahí.
 
 --------------------------------------------------------------------------------
 ARQUITECTURA DE DATOS (DOBLE BACKEND)
@@ -54,6 +54,10 @@ ARQUITECTURA DE DATOS (DOBLE BACKEND)
   dev/supabase.sql (publicación supabase_realtime + replica identity full).
   Sin él funciona el polling de respaldo (~10s).
 - Las notas y stats son POR USUARIO en Supabase (username PK).
+- SUGERENCIAS (buzón compartido): tabla `suggestions` (id, username, note, created_at),
+  política abierta como el resto. Cualquier jugador INSERTA; Lucifer (el jefe) ve
+  la lista en el modal de Sugerencias. Local: dev/suggestions.json + /api/suggestions.
+  El traspaso de notas entre usuarios se ELIMINÓ (las sugerencias no son personales).
 
 --------------------------------------------------------------------------------
 USUARIO DEIDAD "LUCIFER" (pruebas)
@@ -96,6 +100,13 @@ LOPAMULETOS / TIENDA (estado actual)
   daily: milagro, ultimobaile, spizUpgrade, dineroUpgrade) + essentials siempre
   (board14, board18, chami) + reliquias (syntek 400€, nword 300€, charlie 250€ —
   requieren iPod, visibles pero bloqueadas sin él). Regala la Carta del Dragón la 1ª vez.
+- TIENDA EN MÓVIL: TODO en una columna y UN SOLO scroll (el del modal, sin scrolls
+  anidados). El dragón arriba (140px) y la cartera debajo; la lista del stock es el
+  único scrolleable con BARRA visible (scrollbar-width thin + ::-webkit-scrollbar
+  morado). El iPod (iPod de Farlopín) queda al FINAL del stock. Título corto "🐉 Tienda"
+  (sin el texto "Ojos azules, cartera llena..." — se quitó). Truco: .shop-right con
+  display:contents suelta a sus hijos para reordenarlos con order (dragón -2, cartera -1,
+  stock 1, ipod 2).
 - AMULETOS (textos.js + buildAmulet, placeholders {VIDENTE_RECHARGE_EVERY}...):
   positivos: rizao, subidon, iman, vidente, papu, rastreador.
   de carga (CHARGE_AMULETS): milagro, ultimobaile. negativos permanentes: mala, sombra, gafe.
@@ -134,6 +145,10 @@ RANKING / RESULTADO / CHAT-AMIGOS / UI MÓVIL (estado actual)
   localStorage 'buscalopas_result_pos'). Desglose de ganancias + LopAmuletos
   conseguidos como botones (se quitan al verlos). MÓVIL: compacto (52vh máx), título
   de sección "🔮 LopAmuletos 🆕".
+  - EN MÓVIL la tarjeta es FIJA a 30vh (por debajo de los botones Menú/Reiniciar):
+    SIN arrastre (asa oculta con CSS, startResultDrag ignora en móvil) y la posición
+    guardada se IGNORA (applyResultPos fuerza {x:0,y:0} en móvil: evitaba tarjetas
+    fuera de sitio que obligaban a refrescar). Solo se pliega/despliega (✕ / 💰).
 - CHAT (estilo WhatsApp, botón 💬 abajo-izq): lista de conversaciones con badge de
   no leídos + conversación con input. Polling 3s. Límites: 500 chars, 1 msg/1,2s.
 - AMIGOS (botón 🤝 sobre el chat): desplegable con amigos + solicitudes entrantes/
@@ -148,7 +163,27 @@ RANKING / RESULTADO / CHAT-AMIGOS / UI MÓVIL (estado actual)
   - Tablero 9x9 si cabe → .board-fits (sin scroll, centrado); 14/18 → scroll horizontal.
   - Globos chat/amigos/ranking/panel-amuletos: EXCLUSIVOS (abrir uno cierra los demás)
     y se cierran clicando fuera (closeMobilePanels + listener global).
-  - Volumen plegado arriba-izq (toca para desplegar); también en ⚙️ Ajustes del menú.
+  - Volumen plegado arriba-izq: top 112px SIEMPRE (menú, partida y login), z-index 2100
+    (por encima de los modales 2000 → visible también en el login). Toca para desplegar.
+  - TECLADO MÓVIL: meta viewport con `interactive-widget=resizes-content` (el navegador
+    encoge la página al área visible sobre el teclado) + initKeyboardDetect() que pone
+    .kb-open en <body> cuando el viewport se encoge ≥130px y lo QUITA al cerrarse (los
+    modales se compactan con .kb-open .modal: padding-top 96px y tarjeta recogida, y
+    vuelven solos al cerrar el teclado, aunque el input conserve el foco). Con el teclado
+    abierto (o en el login) la fila de LopAmuletos se oculta (.kb-open .hud-amulets /
+    body:has(#user-modal:not(.hidden)) .hud-amulets) → barra de una sola fila.
+  - LOGIN: botones neón del mismo tamaño (48px, white-space:nowrap): ENTRAR morado
+    (.btn-start), Borrar/Generar/Registrarse NEGROS (.btn-neon .btn-neon-black), SIN
+    emojis; ENTRAR+Registrarse en la misma fila (.modal-actions-main). Borrar/Generar
+    no roban el foco al input (preventFocusSteal en pointerdown) ni fuerzan focus():
+    el teclado ni se cierra ni se abre al pulsarlos (sin "flash").
+  - LOGIN SIN USUARIO: el desplegable solo muestra Sugerencias y Ajustes (dd-name,
+    dd-password y dd-lore ocultos sin nombre) y el modal es obligatorio (sin ✕, no se
+    cierra fuera) → imposible llegar al menú sin un nombre.
+  - Clic en el TÍTULO "Buscalopas": cierra TODOS los modales/globos (CLICK_OUTSIDE_MODALS
+    + closeMobilePanels + panel de amuletos) y va al menú principal.
+  - AL INICIAR SESIÓN: SIEMPRE se va al menú principal (onUserReady(true) desde
+    finishLogin/confirmUser/doCreatePassword) — nunca a la pantalla del usuario anterior.
 
 --------------------------------------------------------------------------------
 CONVENCIONES / OJOS ABIERTOS
@@ -173,7 +208,26 @@ CONVENCIONES / OJOS ABIERTOS
 
 --------------------------------------------------------------------------------
 ÚLTIMAS SESIONES (solo lo que aún no está "asimilado" en el código)
---------------------------------------------------------------------------------
+----------------------------------------------------------------------
+- 22/08: (ver mapa de símbolos abajo para líneas) resultado de partida FIJO en
+  móvil a 30vh bajo Menú/Reiniciar (sin arrastre, sin posición guardada); celda
+  "pisada" al deslizar el dedo/ratón (board-step) y celdas libres con aspecto
+  hundido vs sin pulsar en relieve; tienda móvil unificada (dragón arriba 140px,
+  scroll único con barra visible, iPod al final, título corto); clic en el título
+  → cierra todo y menú; login → SIEMPRE menú principal; NOTAS → SUGERENCIAS
+  (buzón compartido, Lucifer ve la lista; tabla `suggestions` en supabase.sql y
+  /api/suggestions en server.js con suggestions.json); Info muestra "Buscalopas
+  2.5 by dumbopatin" (APP_VERSION=2.5 en config.js); teclado móvil manejado
+  (interactive-widget=resizes-content + .kb-open, modales compactos que vuelven
+  al cerrar el teclado, barra de una fila); login sin usuario con dropdown mínimo
+  e imposible cerrar sin nombre (antes se llegaba al menú sin nombre); botones del
+  login neón del mismo tamaño (ENTRAR morado, resto negro, sin emojis); volumen
+  a 112px en todas las pantallas y visible en el login (z-index 2100); Generar/
+  Borrar sin abrir/cerrar el teclado (preventFocusSteal). JUGAR.SH: imprime URL
+  local + túnel Cloudflare (cloudflared en ~/.local/bin) + QR escaneable en la
+  terminal (python3 qrcode, `pip3 install --user --break-system-packages qrcode`);
+  la URL del túnel CAMBIA en cada arranque (reutiliza la activa si sigue viva;
+  antes leía un log viejo y daba la URL muerta "nokia").
 - 21/08: fix turulos en móvil (pulsación larga real con pointer events; se ignoraba
   el click de "suelta de dedo" que destapaba la casilla justo al quitar la bandera
   → BOOM pillado). RESPUESTA A BUG: en vista móvil con RATÓN (ventana estrecha) el
@@ -210,13 +264,16 @@ AMULETOS: buildAmulet @87, LOPAMULETOS @99, CHARGE_AMULETS @100, NEGATIVE_AMULET
   amuletVisual @1456, amuletImgFallback @1465, openAmuletModal @1514, closeAmuletModal @1565.
 DINERO/FORMATO: formatMoney @473, updateWalletDisplay @486, addMoney @494.
 USUARIO/LOGIN: getUsername @504, isLoggedIn @508, hashPassword @532, setUsername @523,
-  loadNames @695, pickUnusedName @720, generateLopero @775, confirmUser @788,
-  registerUser @864, finishLogin @855, confirmPassword @1031, doCreatePassword @1061,
+  loadNames @695, pickUnusedName @720, generateLopero @776, confirmUser @790,
+  registerUser @864, finishLogin @855, doCreatePassword @1061,
   offerPasswordSave @1102, transferUserData @1136, logout @915, doLogout @920,
-  updateDropdown @896, openUserModal @746, openPassModal @1016, renderRegisterBanner @888.
+  updateDropdown @898, openUserModal @747, openPassModal @1016, renderRegisterBanner @888.
 ESTADÍSTICAS: emptyStats @548, normalizeStats @558, readLocalStats @597, loadStats @610,
   saveStats @640, recordGameResult @647, pushStats @665, applyDeityBoost @627.
 TOAST/NOTIFS: renderToast @969, showToast @998, showNotification @1002, hideToast @1006.
+SUGERENCIAS: loadSuggestionsList @1581, openSuggestionsModal @1611,
+  setSuggestionsStatus @1624, sendSuggestion @1632. Modal #suggestions-modal
+  (antes notes-modal). Solo Lucifer (isDeity) ve la lista; el resto escribe.
 SUPABASE/DOBLE BACKEND: supabaseFetch @3468, initSupabase @3482, fetchPlayerData @3508,
   pushPlayerData @3527, pushWalletExact @3546, fetchLeaderboard @3561, loadRanking @3638,
   loadPlayerFromServer @3590, rememberPassHash @3624, getPassHash @3628.
@@ -240,24 +297,28 @@ iPOD: ipodTrackUnlocked @3168, checkIpodTrackUnlocks @3176, getActiveTrack @3197
   setIpodMinimized @3211, toggleIpodMinimized @3220, updateIpodShuffleTrack @3224,
   renderIpodPanel @3231, renderIpodTrackList @3239, selectIpodTrack @3267,
   playSelectedTrack @3279, startMusicTimeTracking @3300.
-PARTIDA/FLUJO: onUserReady @3666, isMobileView @3677, startGame @3688, showMenu @3698,
-  initGame @3723, generateMines @3809, generateSpiz @3820, calculateNeighbors @3830,
-  startTimer @3949, checkLuciferThreshold @3858, enterLuciferState @3872,
-  exitLuciferState @3907, triggerSpiz @4090, handleReveal @4142, handleTurulo @4271,
-  revealCell @4223, checkTuruloWin @4391, winGame @4508, revealAllCells @4547,
-  settleGameCounters @2839, commitPlayTime @2939.
+PARTIDA/FLUJO: onUserReady(goMenu) @3688, isMobileView @3678, startGame @3689,
+  showMenu @3723, initGame @3724, generateMines @3809, generateSpiz @3820,
+  calculateNeighbors @3830, startTimer @3949, checkLuciferThreshold @3858,
+  enterLuciferState @3872, exitLuciferState @3907, triggerSpiz @4090,
+  handleReveal @4142, handleTurulo @4271, revealCell @4223, checkTuruloWin @4391,
+  winGame @4508, revealAllCells @4542, settleGameCounters @2839, commitPlayTime @2939.
 TABLERO/RESPONSIVE: sidePanelReserve @3993, boardCellSize @3999, applyBoardCellSize @4007,
-  updateBoardFit @4012, renderBoard @4021, positionRelicButton @1955.
+  updateBoardFit @4012, renderBoard @4045, positionRelicButton @1955.
 PULSACIÓN LARGA MÓVIL (turulos): LP_MS @4341, cellFromTarget @4344, cancelLongPress @4353,
-  initMobileLongPress @4358 (estado: lpTimer/lpArmed/lpHandled/lpFiredCell/lpFiredUntil).
+  initMobileLongPress @4382 (estado: lpTimer/lpArmed/lpHandled/lpFiredCell/lpFiredUntil).
+EFECTOS MÓVIL: initBoardStepEffect @4417 (celda .board-step bajo el dedo/ratón),
+  initKeyboardDetect @4447 (clase .kb-open en body cuando el teclado encoge el
+  viewport ≥130px; la quita al cerrarse). preventFocusSteal @4781 (Borrar/Generar
+  no roban el foco al input).
 SPIZ: spizSavedBonus @42, showSpizPopup @4184, maybeShowSpizTutorial @4216,
   spizTutorialSeen @3399, maybeQueueSpizNotice @3403.
 POPUPS/COLA: openInfoPopup @3313, closeInfoPopup @3325, queueNotice @3333,
   showNextNotice @3337, flushNotices @3361, showResultAfterNotices @3368.
 RESULTADO: buildWinBreakdown @4302, buildLossBreakdown @4333, renderResultEarnings @4343,
   renderResultAmulets @4358, renderResultFromLast @4375, openResultScreen @4386,
-  showResultCard @4399, hideResultCard @4407, clearLastResult @4413, loadResultPos @4427,
-  saveResultPos @4434, applyResultPos @4438, startResultDrag @4449,
+  showResultCard @4563, hideResultCard @4571, clearLastResult @4413, loadResultPos @4522,
+  saveResultPos @4529, applyResultPos @4602, startResultDrag @4617,
   turuloBonusPerFlag @4489, luciferTuruloMultiplier @4495.
 AUDIO/MÚSICA: loadSavedVolume @325, applyVolume @332, setVolumeFromInput @375, toggleMute @382,
   expandVolume @400, openSettingsModal @432, playNormalMusic @445, playLuciferMusic @461.
@@ -280,7 +341,19 @@ RESUMEN MOBILE — CÓMO PULIR SIN ROMPER (para próximas sesiones)
   #hud-amulets-panel.
 - En partida (móvil): el título h1/.subtitle y el DEALER (#hud-shop-btn) se ocultan
   con body:has(#game-screen:not(.hidden)); la tienda se abre con 💰 del HUD.
-- Volumen móvil: top 100px (menú) / 112px (partida), left:10, z-index 1700.
+- Volumen móvil: top 112px en TODAS las pantallas (menú/partida/login), left:10,
+  z-index 2100 (por encima de los modales 2000: se ve también en el login).
+- Resultado de partida en móvil: FIJO a 30vh, sin arrastre (asa .result-drag-handle
+  display:none y startResultDrag ignora en móvil), posición guardada ignorada.
+- TECLADO: meta viewport interactive-widget=resizes-content (index.html) +
+  .kb-open en body (initKeyboardDetect). Modales compactos: .kb-open .modal
+  padding-top 96px + tarjeta recogida; vuelven solos al cerrar el teclado.
+  Con .kb-open (o login abierto) se oculta .hud-amulets → barra de una fila.
+- Tienda móvil: .shop-right{display:contents} y order: dragón -2, cartera -1,
+  stock 1 (flex:1, overflow-y:auto con barra visible), ipod 2. .shop-card
+  max-height calc(100vh-170px).
+- Login: botones .btn-neon (48px, nowrap) negros + ENTRAR .btn-start morado;
+  Borrar/Generar con preventFocusSteal (no mueven el teclado).
 - Turulos en móvil = pulsación larga (pointerdown 420ms en #board, LP_MS); el
   contextmenu en móvil: e.button===2 (ratón) togglea; button 0 (touch) solo actúa
   de respaldo si el long-press no disparó (lpHandled). Ver initMobileLongPress.
@@ -294,10 +367,22 @@ ESTADO GIT / GITHUB (desde 21/08)
 - Repo local inicializado el 21/08 en la raíz del proyecto (sin subir a Netlify
   nada nuevo por esto; git es solo control de versiones).
 - .gitignore: node_modules/, dev/server.log, *.log, dev/scores.json,
-  dev/chat.json, dev/friends.json, dev/notes.json, *.Zone.Identifier, etc.
+  dev/chat.json, dev/friends.json, dev/notes.json, dev/suggestions.json,
+  *.Zone.Identifier, etc.
 - Commit inicial: "Buscalopas 2.3: primer commit" (todo el código y assets).
+- 22/08: commit "Buscalopas 2.5: móvil pulido..." (resultado fijo, sugerencias,
+  teclado, login, tienda, túnel+QR en jugar.sh...).
 - Subido a https://github.com/dumbopatin/buscalopas (rama master).
 - Flujo a seguir (solo cuando el usuario lo pida): git add -A && git commit -m
   "..." && git push.
+
+-------------------------------------------------------------------------------
+PENDIENTE PARA EL DEPLOY (22/08, tras los cambios de esta sesión)
+-------------------------------------------------------------------------------
+- ⚠️ CREAR la tabla `suggestions` en Supabase (ejecutar la parte nueva de
+  dev/supabase.sql) o las sugerencias solo se guardarán en local.
+- Subir a Netlify: index.html, game.js, style.css, config.js y textos.js
+  (config.js cambió la versión a 2.5; index.html añade interactive-widget).
+- dev/ NO se sube (server.js, jugar.sh, supabase.sql, tests, resumen...).
 
 

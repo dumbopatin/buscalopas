@@ -70,7 +70,6 @@ window.TEXTOS = {
 
     // Tienda del Dragon Narco (la lógica de requisitos/precios está en SHOP_LOGIC de game.js)
     tienda: {
-        dragonTalk: 'Ojos azules, cartera llena. ¿Qué quieres probar hoy, compa?',
         items: {
             board15: { name: 'Tablero Rayina 14×14', desc: 'Un tablero más grande para loperas más finas.', price: 150, icon: '🔲' },
             board20: { name: 'Tablero Pollo 18×18', desc: 'Requiere Rayina 14×14. La lopa definitiva.', price: 500, icon: '🟥' },
@@ -96,7 +95,7 @@ window.TEXTOS = {
         nowPlaying: 'Sonando:',
         menuLabel: 'MENÚ',
         tracks: {
-            cyber: { name: 'Cyber-Lopera Radio', desc: 'La radio que da gas a Farlopín. Siempre disponible.' },
+            cyber: { name: 'Cyber-Lopera Radio', desc: 'La radio que enciende a Farlopín. Siempre disponible.' },
             luciferbeats: { name: 'Lucifer Beats', desc: 'Se desbloquea al llegar a Lucifer por primera vez.' },
             spizamarillo: { name: 'Spiz Amarillo', desc: 'Manolo Kabezabolo · Se desbloquea tras guardar el Spiz 10 veces.' },
             nhh: { name: 'NHH', desc: 'Ye · Se desbloquea tras perder 25 veces.' },

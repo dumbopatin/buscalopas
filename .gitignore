@@ -10,6 +10,7 @@ dev/scores.json
 dev/chat.json
 dev/friends.json
 dev/notes.json
+dev/suggestions.json
 
 # Sistema / editor
 .DS_Store

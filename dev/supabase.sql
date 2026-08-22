@@ -91,6 +91,14 @@ create table if not exists notes (
     updated_at timestamptz not null default now()
 );
 
+-- Sugerencias de los jugadores (buzón compartido: el jefe las lee)
+create table if not exists suggestions (
+    id bigint generated always as identity primary key,
+    username text not null default 'anónimo',
+    note text not null,
+    created_at bigint not null default (floor(extract(epoch from now()) * 1000))::bigint
+);
+
 -- Permisos anónimos (igual que scores: abierto para la anon key)
 alter table friendships enable row level security;
 drop policy if exists "all_friendships" on friendships;
@@ -107,6 +115,10 @@ create policy "all_chat_messages" on chat_messages for all using (true) with che
 alter table notes enable row level security;
 drop policy if exists "all_notes" on notes;
 create policy "all_notes" on notes for all using (true) with check (true);
+
+alter table suggestions enable row level security;
+drop policy if exists "all_suggestions" on suggestions;
+create policy "all_suggestions" on suggestions for all using (true) with check (true);
 
 -- ============================================================================
 -- TIEMPO REAL (notificaciones en vivo de chat y solicitudes)
