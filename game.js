@@ -840,6 +840,10 @@ function clearModalError() {
 
 function openUserModal(required) {
     collapseVolumeControls();
+    // Asegura que el icono de volumen quede en su estado real cada vez que se
+    // abre la pantalla de login (primera vez o tras cerrar sesión): sin esto,
+    // el circulito podía quedarse mostrando el estado anterior.
+    applyVolume(volumeSlider ? volumeSlider.value : loadSavedVolume());
     modalRequired = required;
     clearModalError();
     resetNamePassword();
@@ -1018,9 +1022,27 @@ function logout() {
     showConfirmBubble((UI.cerrarSesion || '¿Cerrar sesión de {NAME}?').replace('{NAME}', name), doLogout);
 }
 
+// Cierra TODOS los modales/globos/paneles que pueda haber abiertos (tienda,
+// ajustes, visor de amuletos, vista del dragón, chat, amigos, ranking, toast,
+// notificaciones, confirmación...). Se usa al cerrar sesión para que no quede
+// NADA de la sesión anterior flotando sobre la pantalla de login.
+function closeAllModals() {
+    for (const closeFn of Object.values(CLICK_OUTSIDE_MODALS)) {
+        try { closeFn(); } catch (e) {}
+    }
+    closeDragonView();
+    if (noticeModalEl) noticeModalEl.classList.add('hidden');
+    hideToast();
+    hideConfirmBubble();
+    closeMobilePanels();
+    closeHudAmuletsPanel();
+    renderIpodPanel();
+}
+
 function doLogout() {
     abandonGame();
     collapseVolumeControls();
+    closeAllModals();
     stopChatPolling();
     stopFriendsPolling();
     stopRealtime();
@@ -1043,6 +1065,7 @@ function doLogout() {
     updateDropdown();
     updateWalletDisplay();
     renderHudAmulets();
+    renderIpodPanel();
     renderShopButton();
     openUserModal(true);
 }
@@ -1254,6 +1277,10 @@ function offerPasswordSave(username, password, isNew) {
         form.method = 'POST';
         form.action = 'pwsave.html';
         form.target = frameName;
+        // OJO: el form va a document.body y sin estilos se veía como un recuadro
+        // raro (con el usuario y la contraseña) durante ~3s bajo el botón del
+        // DEALER tras entrar con contraseña. Se oculta igual que el iframe.
+        form.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;border:0;padding:0;margin:0;visibility:hidden;';
         const u = document.createElement('input');
         u.type = 'text';
         u.name = 'username';
@@ -4010,6 +4037,9 @@ function onUserReady(goMenu = false) {
     hideUserModal();
     updateWalletDisplay();
     updateDropdown();
+    // El banner "Regístrate" no debe aparecer tras iniciar sesión: al entrar,
+    // se oculta para que no quede un recuadro suelto bajo el botón de DEALER.
+    if (registerBannerEl) registerBannerEl.classList.add('hidden');
     renderIpodPanel();
     checkIpodTrackUnlocks();
     loadPlayerFromServer();

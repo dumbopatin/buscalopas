@@ -1,9 +1,9 @@
 ================================================================================
-BUSCALOPAS — RESUMEN DE CONTEXTO (sintetizado, última actualización 26/08)
+BUSCALOPAS — RESUMEN DE CONTEXTO (sintetizado, última actualización 24/08)
 ================================================================================
 Juego tipo buscaminas "Cyber-Lopera" (móvil + desktop). Repo git desde 21/08.
 Histórico detallado antiguo: dev/resumen-historico-2026-08-20.txt (solo si se
-necesita cómo se hizo algo antiguo). APP_VERSION en config.js (ahora '2.5').
+necesita cómo se hizo algo antiguo). APP_VERSION en config.js (ahora '2.7').
 
 REGLAS DE TRABAJO (importantes):
 - GIT: el usuario decide cuándo commitear/pushear. NO hacer git add/commit/push
@@ -107,16 +107,30 @@ RANKING / RESULTADO / CHAT / UI MÓVIL CLAVE
   modal es obligatorio; clic en TÍTULO → cierra todo y menú; al iniciar
   sesión SIEMPRE menú principal.
 - TIENDA MÓVIL: globo FIJO (calc(100dvh-162px)) que llena la pantalla bajo la
-  barra de estado, SIN scroll exterior (#shop-modal overflow:hidden). Arriba
-  una fila: dragón pequeño (máx 70px) a la izquierda + título/cartera a la
-  derecha; debajo el STOCK OCUPA TODO EL ANCHO con la cabecera "Stock de hoy"
-  sticky y es la ÚNICA zona scrolleable. El iPod va DENTRO del scroll.
+  barra de estado, SIN scroll exterior (#shop-modal overflow:hidden). Arriba DOS
+  columnas 50/50: el DRAGÓN ocupa la mitad izquierda de la parte superior y la
+  info (título Tienda, cartera y "Stock de hoy + fecha") queda centrada en la
+  mitad derecha (cartera y fecha un pelín más a la derecha). Debajo el STOCK
+  (los comprables) ocupa TODO EL ANCHO y es la ÚNICA zona scrolleable. El iPod
+  va DENTRO del scroll.
 - En partida (móvil): sin título grande ni DEALER flotante (tienda con 💰 del
   HUD); reliquias 64px, Syntek arriba a 30%, dragón debajo (calc 30%+76px).
 - OJO al tocar turulos en móvil: pulsación larga (LP_MS 420ms) + respaldo
   contextmenu; suprime el click tras la pulsación (lpFiredCell/lpFiredUntil).
 
 ÚLTIMAS SESIONES (lo aún no asimilado se resume aquí)
+- 24/08: BUSCALOPAS 2.7 (deploy Netlify). Fix volumen en login: openUserModal
+  refresca el icono con applyVolume (1ª vez o tras logout); en móvil el
+  circulito del login ya muestra el icono dentro (el flex lo sacaba del
+  círculo) y al tocarlo se expande a la píldora con slider (.volume-expanded).
+  Banner "Regístrate" se oculta al iniciar sesión (onUserReady): era el recuadro
+  suelto bajo el DEALER tras entrar. El recuadro raro al entrar CON contraseña
+  era el form de offerPasswordSave (guardar contraseña del navegador) que se
+  añadía VISIBLE a body ~3s → ahora oculto igual que el iframe. Logout:
+  closeAllModals() cierra TODO al cerrar sesión (tienda, ajustes, visor de
+  amuletos, dragón ampliado, chat, amigos, ranking, toast, confirmación,
+  notificaciones, iPod...). Tienda móvil: parte superior a 2 columnas 50/50
+  (dragón izquierda, info centrada a la derecha).
 - 22/08: resultado fijo en móvil, sugerencias compartidas, teclado móvil,
   login pulido, tienda móvil, túnel+QR en jugar.sh.
 - 25/08: fix flood de minas (revealCell para en bolsas), abandonGame() (perder
@@ -151,7 +165,9 @@ MAPAS DE SÍMBOLOS (game.js; "función @ ~línea"; grep el nombre si cambia)
 - iPOD: checkIpodTrackUnlocks@~3468 (delayMs, toasts en cadena), ipodTrackUnlocked,
   selectIpodTrack, renderIpodPanel.
 - MÓVIL/UI: isMobileView@~4009, closeMobilePanels, initKeyboardDetect,
-  initMobileLongPress, applyBoardCellSize, CLICK_OUTSIDE_MODALS.
+  initMobileLongPress, applyBoardCellSize, CLICK_OUTSIDE_MODALS,
+  closeAllModals@~1025 (cierra todo al logout), openUserModal (refresca
+  volumen), offerPasswordSave (form oculto p/ guardar contraseña).
 - PARTIDA: startGame, initGame@~4030 (resetea syntekUsedThisGame),
   handleReveal, handleTurulo, winGame, commitPlayTime.
 - SUPABASE: initSupabase@~3811, fetchPlayerData, loadPlayerFromServer@~3919,
@@ -161,7 +177,8 @@ ESTADO GIT / GITHUB
 - Commits: 21/08 "Buscalopas 2.3"; 22/08 "Buscalopas 2.5: móvil pulido...";
   25/08 "Buscalopas 2.5: layout móvil... + fix flood y abandono"; 26/08
   "Buscalopas 2.5: tienda móvil a globo fijo, config persistente, subidón con
-  cargas, syntek 1 vez/partida, toasts de canción en secuencia".
+  cargas, syntek 1 vez/partida, toasts de canción en secuencia"; 24/08
+  "Buscalopas 2.7: ...".
 - Pendiente deploy: subir index.html, game.js, style.css, config.js, textos.js
   a Netlify. Asegurar tabla `suggestions` en Supabase (dev/supabase.sql).
 - PENDIENTES conocidos: sonido SFX notificaciones (parcial), +50€ dragón a

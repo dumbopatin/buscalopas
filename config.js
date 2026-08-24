@@ -6,4 +6,4 @@ const SUPABASE_ANON_KEY = 'sb_publishable_UN4ugcDSLS-y-7TvAQFSxg_slTbb02C';
 
 // Versión del juego: se muestra en la barra superior (HUD). Cámbiala AQUÍ y
 // afecta a todas las partes del juego que usan APP_VERSION.
-window.APP_VERSION = '2.5';
+window.APP_VERSION = '2.7';

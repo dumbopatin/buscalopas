@@ -1806,6 +1806,7 @@ select option {
 .shop-layout {
     display: grid;
     grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto 1fr;
     gap: 20px;
     align-items: stretch;
     flex: 1;
@@ -1815,6 +1816,8 @@ select option {
 /* Columna IZQUIERDA: el dragón, más grande, ocupando toda la columna. Al
    clicar se abre la vista ampliada (dragon-view). */
 .shop-dragon {
+    grid-column: 1;
+    grid-row: 1 / -1;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1841,6 +1844,8 @@ select option {
 
 /* Columna DERECHA: título equidistante entre la X y el dragón, dinero y stock. */
 .shop-right {
+    grid-column: 2;
+    grid-row: 1;
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -1903,12 +1908,12 @@ select option {
 }
 
 .shop-stock {
-    flex: 1;
+    grid-column: 2;
+    grid-row: 2;
     min-width: 0;
     display: flex;
     flex-direction: column;
     gap: 10px;
-    max-height: 66vh;
     overflow-y: auto;
 }
 
@@ -4506,11 +4511,11 @@ body.syntek-immunity #board {
 
     /* Tienda en móvil: globo FIJO que llena la pantalla por debajo de la barra
        de estado (sin scroll exterior: el único scroll es el del stock). Arriba
-       una fila con el dragón a la izquierda y el título + cartera a la derecha;
-       debajo, el STOCK OCUPA TODO EL ANCHO (con su cabecera "Stock de hoy"
-       fija) y es la única zona scrolleable. El iPod va DENTRO del scroll del
-       stock, como un artículo más. (.shop-right con display:contents suelta
-       sus hijos para poder reordenarlos con grid-template-areas.) */
+       dos columnas 50/50: el DRAGÓN ocupa la mitad izquierda de la parte
+       superior y toda la información (título Tienda, cartera y "Stock de hoy +
+       fecha") queda centrada en la mitad derecha. Debajo, el STOCK (los
+       comprables) ocupa TODO EL ANCHO y es la única zona scrolleable. El iPod
+       va DENTRO del scroll del stock, como un artículo más. */
     #shop-modal.modal {
         overflow: hidden;
     }
@@ -4526,51 +4531,68 @@ body.syntek-immunity #board {
 
     .shop-layout {
         display: grid;
-        grid-template-columns: 106px 1fr;
-        grid-template-rows: auto auto 1fr;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto 1fr;
         grid-template-areas:
-            "dragon title"
-            "dragon wallet"
-            "stock stock";
+            "dragon info"
+            "stock  stock";
         gap: 10px 12px;
         flex: 1;
         min-height: 0;
     }
 
     .shop-right {
-        display: contents;
+        grid-area: info;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: flex-start;
+        gap: 6px;
+        min-width: 0;
+        min-height: 0;
     }
 
     .shop-dragon {
         grid-area: dragon;
         padding: 0;
         display: flex;
-        align-items: flex-start;
+        align-items: center;
         justify-content: center;
+        min-height: 0;
     }
 
     .shop-dragon img {
         width: 100%;
         height: auto;
-        max-height: 70px;
         object-fit: contain;
         border-radius: 16px;
+        cursor: zoom-in;
     }
 
     .shop-title {
-        grid-area: title;
         font-size: 1.05em;
         padding-right: 30px;
         text-align: left;
     }
 
     .shop-wallet {
-        grid-area: wallet;
         font-size: 0.95em;
         padding: 6px 10px;
         text-align: left;
         width: fit-content;
         max-width: 100%;
+        margin-left: 10px;
+    }
+
+    .shop-today {
+        font-size: 0.82em;
+        text-align: left;
+        margin: 0;
+        padding: 0;
+    }
+
+    .shop-today #shop-date {
+        margin-left: 4px;
     }
 
     .shop-stock {
@@ -4581,16 +4603,6 @@ body.syntek-immunity #board {
         overflow-y: auto;
         scrollbar-width: thin;
         scrollbar-color: var(--accent-purple) rgba(255, 255, 255, 0.06);
-    }
-
-    /* La cabecera "Stock de hoy" queda fija arriba del scroll del stock
-       mientras los comprables pasan por debajo. */
-    .shop-today {
-        position: sticky;
-        top: 0;
-        z-index: 1;
-        background: var(--card-bg);
-        padding: 2px 0 6px;
     }
 
     .shop-stock::-webkit-scrollbar {
@@ -4791,12 +4803,55 @@ body.syntek-immunity #board {
         height: 34px;
         padding: 0;
         border-radius: 50%;
-        gap: 0;
+        gap: 8px;
         justify-content: center;
         overflow: hidden;
         opacity: 0.95;
         z-index: 2100;
         display: none;
+    }
+
+    /* En modo circulito el slider y el % quedan ocultos (solo se ve el icono):
+       si no se ocultan, el botón se sale del círculo por el flex y el icono
+       desaparece dentro del circulito. Al expandir (.volume-expanded) se
+       muestran y el control recupera su forma de píldora. */
+    #volume-control-floating input[type="range"],
+    #volume-control-floating #volume-value {
+        display: none;
+    }
+
+    #volume-control-floating button {
+        width: 34px;
+        height: 34px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    #volume-control-floating.volume-expanded {
+        width: auto;
+        height: auto;
+        min-height: 34px;
+        padding: 4px 12px;
+        border-radius: 30px;
+        overflow: visible;
+    }
+
+    #volume-control-floating.volume-expanded input[type="range"] {
+        display: block;
+        width: 90px;
+        accent-color: var(--accent-pink);
+        cursor: pointer;
+    }
+
+    #volume-control-floating.volume-expanded #volume-value {
+        display: block;
+        font-size: 0.85em;
+        color: var(--accent-pink);
+        font-weight: bold;
+        min-width: 35px;
+        text-align: right;
     }
 
     /* En el login (usuario / contraseña) el volumen sale del hueco de la barra
