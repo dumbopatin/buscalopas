@@ -130,7 +130,8 @@ RANKING / RESULTADO / CHAT / UI MÓVIL CLAVE
   closeAllModals() cierra TODO al cerrar sesión (tienda, ajustes, visor de
   amuletos, dragón ampliado, chat, amigos, ranking, toast, confirmación,
   notificaciones, iPod...). Tienda móvil: parte superior a 2 columnas 50/50
-  (dragón izquierda, info centrada a la derecha).
+  (dragón izquierda, info centrada a la derecha). Favicon en la pestaña:
+  index.html con <link rel="icon"> a img/buscalopas_cyber.jpg (nuevo).
 - 22/08: resultado fijo en móvil, sugerencias compartidas, teclado móvil,
   login pulido, tienda móvil, túnel+QR en jugar.sh.
 - 25/08: fix flood de minas (revealCell para en bolsas), abandonGame() (perder
