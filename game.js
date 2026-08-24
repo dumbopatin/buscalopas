@@ -50,6 +50,7 @@ const SHOP_WINS_REQ = 3;
 const SHOP_TIME_REQ = 300; // 5 minutos de juego efectivo
 const MAX_UPGRADE_LEVEL = 5;
 const MAX_CHARGES = 3;
+const MAX_PINNED = 4;
 const PAPU_TIME = 15;
 const MALA_TIME = 10;
 const SUBIDON_TIME = 10;
@@ -282,6 +283,7 @@ const chatBadgeEl = document.getElementById('chat-badge');
 const relicDragonBtnEl = document.getElementById('relic-dragon-btn');
 const relicSyntekBtnEl = document.getElementById('relic-syntek-btn');
 const rankingToggleBtn = document.getElementById('ranking-toggle-btn');
+const rankingCloseBtn = document.getElementById('ranking-close-btn');
 const requestsOpenBtn = document.getElementById('requests-open-btn');
 const requestsBadgeEl = document.getElementById('requests-badge');
 const requestsDropdownEl = document.getElementById('requests-dropdown');
@@ -310,6 +312,12 @@ const toggleMuteBtn = document.getElementById('toggle-mute-btn');
 const volumeSlider = document.getElementById('volume-slider');
 const volumeValueTxt = document.getElementById('volume-value');
 const volumeControlFloating = document.getElementById('volume-control-floating');
+const hudVolumeEl = document.getElementById('hud-volume');
+const hudVolumeMuteBtn = document.getElementById('hud-volume-mute');
+const hudVolumePanelEl = document.getElementById('hud-volume-panel');
+const hudVolumePanelMuteBtn = document.getElementById('hud-volume-panel-mute');
+const hudVolumeSlider = document.getElementById('hud-volume-slider');
+const hudVolumeValueTxt = document.getElementById('hud-volume-value');
 const settingsModalEl = document.getElementById('settings-modal');
 const settingsCloseBtn = document.getElementById('settings-close-btn');
 const settingsMuteBtn = document.getElementById('settings-mute-btn');
@@ -338,17 +346,14 @@ function applyVolume(val) {
     if (volumeValueTxt) volumeValueTxt.textContent = `${Math.round(vol * 100)}%`;
     if (settingsVolumeSlider) settingsVolumeSlider.value = vol;
     if (settingsVolumeValueTxt) settingsVolumeValueTxt.textContent = `${Math.round(vol * 100)}%`;
+    if (hudVolumeSlider) hudVolumeSlider.value = vol;
+    if (hudVolumeValueTxt) hudVolumeValueTxt.textContent = `${Math.round(vol * 100)}%`;
 
-    if (vol === 0 || isMuted) {
-        toggleMuteBtn.textContent = '🔇';
-        if (settingsMuteBtn) settingsMuteBtn.textContent = '🔇';
-    } else if (vol < 0.5) {
-        toggleMuteBtn.textContent = '🔉';
-        if (settingsMuteBtn) settingsMuteBtn.textContent = '🔉';
-    } else {
-        toggleMuteBtn.textContent = '🔊';
-        if (settingsMuteBtn) settingsMuteBtn.textContent = '🔊';
-    }
+    const icon = (vol === 0 || isMuted) ? '🔇' : (vol < 0.5 ? '🔉' : '🔊');
+    toggleMuteBtn.textContent = icon;
+    if (settingsMuteBtn) settingsMuteBtn.textContent = icon;
+    if (hudVolumeMuteBtn) hudVolumeMuteBtn.textContent = icon;
+    if (hudVolumePanelMuteBtn) hudVolumePanelMuteBtn.textContent = icon;
 }
 
 // 1. Intentar arrancar la música desde que entras a la página
@@ -415,11 +420,55 @@ if (toggleMuteBtn) {
     });
 }
 
-// En móvil, tocar fuera de la píldora de volumen la vuelve a plegar.
-document.addEventListener('click', (e) => {
-    if (isMobileView() && volumeExpanded && volumeControlFloating && !volumeControlFloating.contains(e.target)) {
-        expandVolume(false);
+// Volumen dentro de la barra de tareas (móvil): botón que despliega un menú
+// VERTICAL debajo de él (silenciar + slider + %). Se cierra al tocar fuera, al
+// salir del menú, al iniciar partida o al cerrar sesión (nunca se queda un
+// resto roto del botón).
+let hudVolumeExpanded = false;
+function expandHeaderVolume(v) {
+    hudVolumeExpanded = !!v;
+    if (hudVolumePanelEl) {
+        hudVolumePanelEl.classList.toggle('hidden', !hudVolumeExpanded);
+        if (v && hudVolumeMuteBtn) {
+            // El panel es un elemento fijo a nivel de body: se coloca justo
+            // debajo del botón de la barra.
+            const r = hudVolumeMuteBtn.getBoundingClientRect();
+            const w = hudVolumePanelEl.offsetWidth || 150;
+            let left = r.left;
+            if (left + w > window.innerWidth - 8) left = Math.max(8, window.innerWidth - w - 8);
+            hudVolumePanelEl.style.left = left + 'px';
+            hudVolumePanelEl.style.top = (r.bottom + 8) + 'px';
+        }
     }
+}
+
+function collapseVolumeControls() {
+    expandHeaderVolume(false);
+    expandVolume(false);
+}
+
+if (hudVolumeMuteBtn) {
+    hudVolumeMuteBtn.addEventListener('click', () => {
+        expandHeaderVolume(!hudVolumeExpanded);
+    });
+}
+
+if (hudVolumePanelMuteBtn) {
+    hudVolumePanelMuteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleMute();
+    });
+}
+
+if (hudVolumeSlider) {
+    hudVolumeSlider.addEventListener('input', (e) => setVolumeFromInput(e.target.value));
+}
+
+// En móvil, tocar fuera de la píldora de volumen la cierra.
+document.addEventListener('click', (e) => {
+    if (!isMobileView()) return;
+    if (volumeExpanded && volumeControlFloating && !volumeControlFloating.contains(e.target)) expandVolume(false);
+    if (hudVolumeExpanded && hudVolumeEl && !hudVolumeEl.contains(e.target)) expandHeaderVolume(false);
 });
 
 if (settingsVolumeSlider) {
@@ -551,7 +600,7 @@ function emptyStats() {
         games: 0, wins: 0, losses: 0, bestEarning: 0, spizSaved: 0,
         timePlayed: 0, luciferReached: 0, luciferTime: 0, turulosWins: 0, correctTurulos: 0,
         ipod: false, ipodTrack: 'cyber', musicTime: {}, ipodNotified: [],
-        lopa: { shopUnlocked: false, owned: {}, active: {}, charges: { milagro: 0, ultimobaile: 0, vidente: 0 }, levels: { spiz: 0, dinero: 0, lucifer: 0 }, uses: { subidon: 0, dragon: 0 }, order: [], relicGames: 0, acquired: {} },
+        lopa: { shopUnlocked: false, owned: {}, active: {}, charges: { milagro: 0, ultimobaile: 0, vidente: 0 }, levels: { spiz: 0, dinero: 0, lucifer: 0 }, uses: { subidon: 0, dragon: 0 }, order: [], pinned: [], relicGames: 0, acquired: {} },
         by: {}
     };
 }
@@ -564,6 +613,7 @@ function normalizeStats(s) {
     const levels = (l.levels && typeof l.levels === 'object') ? l.levels : {};
     const uses = (l.uses && typeof l.uses === 'object') ? l.uses : {};
     const order = (Array.isArray(l.order) ? l.order : []).filter(id => ALL_AMULETS[id] || UPGRADE_IDS.includes(id));
+    const pinned = (Array.isArray(l.pinned) ? l.pinned : []).filter(id => ALL_AMULETS[id] || UPGRADE_IDS.includes(id)).slice(0, MAX_PINNED);
     const acquired = (l.acquired && typeof l.acquired === 'object') ? l.acquired : {};
     return {
         games: s.games || 0,
@@ -588,6 +638,7 @@ function normalizeStats(s) {
             levels: { spiz: levels.spiz || 0, dinero: levels.dinero || 0, lucifer: levels.lucifer || 0 },
             uses: { subidon: uses.subidon || 0, dragon: uses.dragon || 0 },
             order,
+            pinned,
             relicGames: Math.max(0, l.relicGames || 0),
             acquired
         },
@@ -642,7 +693,9 @@ function saveStats() {
     const name = getUsername();
     if (!name) return;
     localStorage.setItem(STATS_KEY_PREFIX + name, JSON.stringify(statsData));
-    pushStats(name, statsData).catch(() => {});
+    // Snapshot: si justo después se resetea statsData (p. ej. al cerrar sesión
+    // en mitad de partida) la subida al servidor conserva el estado real.
+    pushStats(name, JSON.parse(JSON.stringify(statsData))).catch(() => {});
 }
 
 function recordGameResult(result, earnings = 0, spizSaved = false) {
@@ -745,6 +798,7 @@ function clearModalError() {
 }
 
 function openUserModal(required) {
+    collapseVolumeControls();
     modalRequired = required;
     clearModalError();
     resetNamePassword();
@@ -924,6 +978,8 @@ function logout() {
 }
 
 function doLogout() {
+    abandonGame();
+    collapseVolumeControls();
     stopChatPolling();
     stopFriendsPolling();
     stopRealtime();
@@ -1018,6 +1074,42 @@ if (toastCloseEl) {
     toastCloseEl.addEventListener('click', hideToast);
 }
 
+// --- Deslizar la notificación a un lado para cerrarla (además de la X) ---
+// Se arrastra el globo con el dedo/ratón: si pasa del umbral se cierra; si no,
+// vuelve a su sitio. Los botones internos (X, acción) no inician el arrastre.
+let toastDrag = null;
+function initToastDrag() {
+    const bubble = toastEl ? toastEl.querySelector('.toast-bubble') : null;
+    if (!bubble || bubble.dataset.dragInit) return;
+    bubble.dataset.dragInit = '1';
+    bubble.addEventListener('pointerdown', (e) => {
+        if (e.target.closest('button, a, input, textarea, select')) return;
+        toastDrag = { x: e.clientX, dx: 0, id: e.pointerId };
+        if (bubble.setPointerCapture) bubble.setPointerCapture(e.pointerId);
+    });
+    bubble.addEventListener('pointermove', (e) => {
+        if (!toastDrag) return;
+        toastDrag.dx += e.clientX - toastDrag.x;
+        toastDrag.x = e.clientX;
+        const dx = toastDrag.dx;
+        toastEl.style.transform = `translateX(${dx}px)`;
+        toastEl.style.transition = 'none';
+        toastEl.style.opacity = String(Math.max(0, 1 - Math.min(1, Math.abs(dx) / 160)));
+    });
+    const endToastDrag = () => {
+        if (!toastDrag) return;
+        const dx = toastDrag.dx;
+        toastDrag = null;
+        toastEl.style.transform = '';
+        toastEl.style.transition = '';
+        toastEl.style.opacity = '';
+        if (Math.abs(dx) > 70) hideToast();
+    };
+    bubble.addEventListener('pointerup', endToastDrag);
+    bubble.addEventListener('pointercancel', endToastDrag);
+}
+initToastDrag();
+
 // --- Modal de contraseña / crear cuenta ---
 function openPassModal(name) {
     const n = (name || getUsername() || '').trim();
@@ -1060,8 +1152,7 @@ async function confirmPassword() {
         showPassError(UI.sinConexion || 'No se pudo comprobar el nombre. ¿Hay conexión?');
         return;
     }
-    const confirmMsg = UI.confirmarCuenta || '¿Confirmas que este será tu usuario y contraseña?';
-    showConfirmBubble(`${confirmMsg}\n👤 ${name} · 🔒 ${'•'.repeat(Math.min(p1.length, 12))}`, () => doCreatePassword(name, p1));
+    doCreatePassword(name, p1);
 }
 
 async function doCreatePassword(name, p1) {
@@ -1220,7 +1311,6 @@ function openInfoModal() {
 }
 
 // --- Progresión: LopAmuletos y tienda ---
-const shopBtn = document.getElementById('shop-btn');
 const shopModalEl = document.getElementById('shop-modal');
 const shopCloseBtn = document.getElementById('shop-close-btn');
 const shopListEl = document.getElementById('shop-list');
@@ -1258,6 +1348,16 @@ const ipodInfoRows = document.querySelectorAll('#info-spiz-row, #info-lucifer-ro
 const infoLuciferEl = document.getElementById('info-lucifer');
 const infoLuciferTimeEl = document.getElementById('info-lucifer-time');
 
+// --- Lore (📜) ---
+const loreModalEl = document.getElementById('lore-modal');
+const loreCloseBtn = document.getElementById('lore-close-btn');
+const loreListEl = document.getElementById('lore-list');
+const loreViewEl = document.getElementById('lore-view');
+const loreBackBtn = document.getElementById('lore-back-btn');
+const loreViewTitleEl = document.getElementById('lore-view-title');
+const loreViewTextEl = document.getElementById('lore-view-text');
+const loreViewImgEl = document.getElementById('lore-view-img');
+
 function amuletUnlocked(id) {
     switch (id) {
         case 'rizao': return (statsData.wins || 0) >= 1;
@@ -1277,6 +1377,14 @@ const UPGRADE_IDS = ['level-spiz', 'level-dinero', 'level-lucifer', 'reveal-lvl'
 
 function isUpgradeId(id) {
     return UPGRADE_IDS.includes(id);
+}
+
+function upgradeLevel(id) {
+    const lopa = statsData.lopa;
+    if (id === 'level-spiz') return lopa.levels.spiz || 0;
+    if (id === 'level-dinero') return lopa.levels.dinero || 0;
+    if (id === 'level-lucifer') return lopa.levels.lucifer || 0;
+    return spizRevealLevel();
 }
 
 function markAcquired(id) {
@@ -1365,18 +1473,21 @@ function renderHudAmulets() {
     const container = document.getElementById('hud-amulets');
     if (!container) return;
     const lopa = statsData.lopa;
-    const revLvl = spizRevealLevel();
+    const mobile = isMobileView();
     let html = '';
     for (const id of orderedAmuletIds()) {
         if (isUpgradeId(id)) {
-            const lvl = id === 'level-spiz' ? (lopa.levels.spiz || 0) : id === 'level-dinero' ? (lopa.levels.dinero || 0) : id === 'level-lucifer' ? (lopa.levels.lucifer || 0) : revLvl;
+            const lvl = upgradeLevel(id);
             if (lvl <= 0) continue;
+            // En móvil solo se muestran los fijados (máx 4); en PC todos.
+            if (mobile && !isAmuletPinned(id)) continue;
             html += `<div class="amu amu-upgrade" data-amulet-id="${id}">${amuletVisual(id)}<span class="amu-lvl">${lvl}</span></div>`;
             continue;
         }
         const owned = lopa.owned[id];
         const charges = lopa.charges[id] || 0;
         if (!owned && charges === 0) continue;
+        if (mobile && !isAmuletPinned(id)) continue;
         const a = ALL_AMULETS[id];
         const chargeBadge = charges > 0 ? `<span class="amu-charge">×${charges}</span>` : '';
         const neg = a && a.negative ? ' amu-negative' : '';
@@ -1385,9 +1496,11 @@ function renderHudAmulets() {
         const progBadge = (prog && (id === 'rastreador' || id === 'vidente' || id === 'dragon')) ? `<span class="amu-prog">${prog.cur >= prog.max ? '✓' : `${prog.cur}/${prog.max}`}</span>` : '';
         html += `<div class="amu${neg}${inact}" data-amulet-id="${id}">${amuletVisual(id)}${chargeBadge}${progBadge}</div>`;
     }
-    // Botón "ver todos" (solo en móvil; abre el panel con todos los LopAmuletos).
-    // Va a la IZQUIERDA del todo (primero de la fila), lejos del dinero/menú.
-    if (html) html = `<button id="hud-amulets-all" class="hud-amulets-all" type="button" title="Ver todos los LopAmuletos">▾</button>` + html;
+    // Botón "ver todos" (solo en móvil): la píldora "Lopamuletos" SIEMPRE que
+    // haya amuletos, aunque no haya ninguno fijado (es la única vía al panel).
+    const anyAmulets = hasAnyAmulets();
+    const showAllBtn = mobile ? anyAmulets : !!html;
+    if (showAllBtn) html = `<button id="hud-amulets-all" class="hud-amulets-all" type="button" title="Ver todos los LopAmuletos">🔮 Lopamuletos ▾</button>` + html;
     container.innerHTML = html;
     renderHudAmuletsPanel();
 }
@@ -1398,13 +1511,14 @@ function renderHudAmuletsPanel() {
     const panel = document.getElementById('hud-amulets-panel');
     if (!list || !panel) return;
     const lopa = statsData.lopa;
-    const revLvl = spizRevealLevel();
     let html = '';
     for (const id of orderedAmuletIds()) {
+        const pinned = isAmuletPinned(id);
+        const pinBtn = `<button class="hap-pin ${pinned ? 'hap-pin-quitar' : 'hap-pin-fijar'}" data-pin-id="${id}" type="button">${pinned ? 'Quitar' : 'Fijar'}</button>`;
         if (isUpgradeId(id)) {
-            const lvl = id === 'level-spiz' ? (lopa.levels.spiz || 0) : id === 'level-dinero' ? (lopa.levels.dinero || 0) : id === 'level-lucifer' ? (lopa.levels.lucifer || 0) : revLvl;
+            const lvl = upgradeLevel(id);
             if (lvl <= 0) continue;
-            html += `<div class="hap-item hap-upgrade" data-amulet-id="${id}">${amuletVisual(id)}<span class="hap-lvl">${lvl}</span><span class="hap-name">${escapeHtml((amuletInfo(id) || {}).name || id)}</span></div>`;
+            html += `<div class="hap-item hap-upgrade${pinned ? ' hap-pinned' : ''}" data-amulet-id="${id}">${amuletVisual(id)}<span class="hap-lvl">${lvl}</span><span class="hap-name">${escapeHtml((amuletInfo(id) || {}).name || id)}</span><div class="hap-footer"><span class="hap-status">⬆️ Lv.${lvl}</span>${pinBtn}</div></div>`;
             continue;
         }
         const owned = lopa.owned[id];
@@ -1414,29 +1528,88 @@ function renderHudAmuletsPanel() {
         const chargeBadge = charges > 0 ? `<span class="hap-charge">×${charges}</span>` : '';
         const neg = a && a.negative ? ' hap-negative' : '';
         const inact = (!a.negative && isAmuletActive(id) === false) ? ' hap-inactive' : '';
-        const actTxt = a && a.negative ? '⚠️' : (isAmuletActive(id) === false ? '⚫' : '🟢');
         const prog = amuletProgress(id);
         const progBadge = (prog && (id === 'rastreador' || id === 'vidente' || id === 'dragon')) ? `<span class="hap-prog">${prog.cur >= prog.max ? '✓' : `${prog.cur}/${prog.max}`}</span>` : '';
-        html += `<div class="hap-item${neg}${inact}" data-amulet-id="${id}">${actTxt}${amuletVisual(id)}${chargeBadge}${progBadge}<span class="hap-name">${escapeHtml((a && a.name) || id)}</span></div>`;
+        html += `<div class="hap-item${neg}${inact}${pinned ? ' hap-pinned' : ''}" data-amulet-id="${id}">${amuletVisual(id)}${chargeBadge}${progBadge}<span class="hap-name">${escapeHtml((a && a.name) || id)}</span><div class="hap-footer"><span class="hap-status">${amuletStatusText(id)}</span>${pinBtn}</div></div>`;
     }
     if (!html) {
         panel.classList.add('hidden');
+        document.body.classList.remove('amulets-panel-open');
         list.innerHTML = '';
         return;
     }
     list.innerHTML = html;
 }
 
+// Fijado: en móvil solo se quedan a la vista en la barra los fijados (máx 4).
+function getPinnedAmuletIds() {
+    const p = statsData.lopa.pinned;
+    return (Array.isArray(p) ? p : []).filter(id => ALL_AMULETS[id] || UPGRADE_IDS.includes(id));
+}
+
+function isAmuletPinned(id) {
+    return getPinnedAmuletIds().includes(id);
+}
+
+function togglePinAmulet(id) {
+    const pinned = getPinnedAmuletIds();
+    const idx = pinned.indexOf(id);
+    if (idx >= 0) {
+        pinned.splice(idx, 1);
+    } else {
+        if (pinned.length >= MAX_PINNED) {
+            showToast('🔒 Máximo 4 LopAmuletos fijados', 'info');
+            return;
+        }
+        pinned.push(id);
+    }
+    statsData.lopa.pinned = pinned;
+    saveStats();
+    renderHudAmulets();
+    playUiSound();
+}
+
+// Estado corto de cada LopAmuleto (fila inferior del panel, junto a Fijar).
+function amuletStatusText(id) {
+    if (isUpgradeId(id)) return `⬆️ Lv.${upgradeLevel(id)}`;
+    const a = ALL_AMULETS[id];
+    if (a && a.negative) return '⚠️ Maldición';
+    if (id === 'dragon') {
+        const prog = amuletProgress(id);
+        return (prog && prog.cur >= prog.max) ? '✅ Lista' : '⏳ Recarga';
+    }
+    if (a && a.relic) return isAmuletActive(id) ? '🟢 Activa' : '⚫ Inactiva';
+    if (CHARGE_AMULETS[id]) return (statsData.lopa.charges[id] || 0) > 0 ? '✅ Disponible' : '⏳ Recarga';
+    return isAmuletActive(id) ? '🟢 Activo' : '⚫ Inactivo';
+}
+
+function hasAnyAmulets() {
+    for (const id of orderedAmuletIds()) {
+        if (isUpgradeId(id)) {
+            if (upgradeLevel(id) > 0) return true;
+        } else if (statsData.lopa.owned[id] || (statsData.lopa.charges[id] || 0) > 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
 function closeHudAmuletsPanel() {
     const panel = document.getElementById('hud-amulets-panel');
-    if (panel) panel.classList.add('hidden');
+    if (panel) {
+        panel.classList.add('hidden');
+        document.body.classList.remove('amulets-panel-open');
+    }
 }
 
 function toggleHudAmuletsPanel() {
     const panel = document.getElementById('hud-amulets-panel');
     if (!panel) return;
+    const closing = panel.classList.toggle('hidden');
+    if (!closing) closeMobilePanels('amulets');
     renderHudAmuletsPanel();
-    panel.classList.toggle('hidden');
+    // Mientras se inspeccionan los LopAmuletos el scroll queda limitado al panel.
+    document.body.classList.toggle('amulets-panel-open', !closing);
 }
 
 function amuletInfo(id) {
@@ -2250,12 +2423,13 @@ function toggleRankingPanel() {
     }
 }
 
-// En móvil solo puede haber un "globo" abierto (chat / amigos / ranking): al
-// abrir uno se cierran los demás.
+// En móvil solo puede haber un "globo" abierto (chat / amigos / ranking /
+// panel de LopAmuletos): al abrir uno se cierran los demás.
 function closeMobilePanels(except) {
     if (except !== 'chat' && chatPanelEl && !chatPanelEl.classList.contains('hidden')) closeChatPanel();
     if (except !== 'requests' && requestsDropdownEl && !requestsDropdownEl.classList.contains('hidden')) requestsDropdownEl.classList.add('hidden');
     if (except !== 'ranking' && rankingPanelEl && rankingPanelEl.classList.contains('ranking-open')) rankingPanelEl.classList.remove('ranking-open');
+    if (except !== 'amulets') closeHudAmuletsPanel();
 }
 
 function renderBadges() {
@@ -2927,9 +3101,10 @@ function updateSizeOptions() {
 }
 
 function renderShopButton() {
-    if (shopBtn) shopBtn.classList.toggle('hidden', !statsData.lopa.shopUnlocked);
     if (hudShopBtn) hudShopBtn.classList.toggle('hidden', !statsData.lopa.shopUnlocked);
     if (hudMoneyBtn) hudMoneyBtn.classList.toggle('hud-money-shop', !!statsData.lopa.shopUnlocked);
+    const menuDealer = document.getElementById('menu-dealer-btn');
+    if (menuDealer) menuDealer.classList.toggle('hidden', !statsData.lopa.shopUnlocked);
 }
 
 function checkShopUnlock(notify = true) {
@@ -3092,6 +3267,7 @@ function renderShop() {
     const dateEl = document.getElementById('shop-date');
     if (dateEl) dateEl.textContent = new Date().toLocaleDateString('es-ES');
     renderShopIpod();
+    placeShopIpodSlot();
     if (!shopListEl) return;
     const stock = getTodayStock().filter(shopItemVisible);
     const gift = statsData.lopa.owned.dragon
@@ -3147,6 +3323,16 @@ function renderShopIpod() {
     if (buyBtn) buyBtn.addEventListener('click', buyIpod);
 }
 
+// El iPod es un objeto ESPECIAL: no se queda fijo al final del scroll del stock
+// quitando hueco a la navegación; vive DENTRO del scroll, junto a los objetos
+// comprables (igual en móvil y en escritorio).
+function placeShopIpodSlot() {
+    const slot = document.getElementById('shop-ipod-slot');
+    const stock = document.querySelector('.shop-stock');
+    if (!slot || !stock) return;
+    if (slot.parentNode !== stock) stock.appendChild(slot);
+}
+
 function buyIpod() {
     const ipodTx = TX.ipod || {};
     const price = ipodTx.price || 666;
@@ -3181,6 +3367,27 @@ function openShopModal() {
     giftDragonRelic();
     renderShop();
     shopModalEl.classList.remove('hidden');
+}
+
+// --- Vista ampliada del dragón (clic en la imagen del dealer) ---
+const dragonViewEl = document.getElementById('dragon-view');
+const dragonViewCloseBtn = document.getElementById('dragon-view-close');
+
+function openDragonView() {
+    if (dragonViewEl) dragonViewEl.classList.remove('hidden');
+}
+
+function closeDragonView() {
+    if (dragonViewEl) dragonViewEl.classList.add('hidden');
+}
+
+const shopDragonImg = document.getElementById('shop-dragon-img');
+if (shopDragonImg) shopDragonImg.addEventListener('click', openDragonView);
+if (dragonViewCloseBtn) dragonViewCloseBtn.addEventListener('click', closeDragonView);
+if (dragonViewEl) {
+    dragonViewEl.addEventListener('mousedown', (e) => {
+        if (e.target === dragonViewEl) closeDragonView();
+    });
 }
 
 // --- iPod: música de fondo y reproductor ---
@@ -3227,13 +3434,15 @@ function ipodTrackName(id) {
 }
 
 // iPod minimizado (móvil): se guarda el estado en la sesión (para que al volver
-// al tablero se quede como estaba) y al entrar en el tablero se minimiza solo.
-let ipodMinimized = false;
+// al tablero se quede como estaba). Arranca minimizado de primeras en TODAS las
+// pantallas (móvil y PC); el usuario puede desminimizarlo cuando quiera.
+let ipodMinimized = true;
 
 function setIpodMinimized(v) {
     ipodMinimized = !!v;
     if (!ipodPanelEl) return;
     ipodPanelEl.classList.toggle('ipod-minimized', ipodMinimized);
+    document.body.classList.toggle('ipod-minimized', ipodMinimized);
     if (ipodMinimizeBtn) ipodMinimizeBtn.classList.toggle('hidden', ipodMinimized);
     if (ipodShuffleEl) ipodShuffleEl.classList.toggle('hidden', !ipodMinimized);
     updateIpodShuffleTrack();
@@ -3346,6 +3555,41 @@ function openInfoPopup({ title, desc, img, emoji }) {
 
 function closeInfoPopup() {
     if (infoPopupEl) infoPopupEl.classList.add('hidden');
+}
+
+// --- Lore (📜): se lee desde el desplegable del usuario ---
+function openLoreModal() {
+    if (!loreModalEl) return;
+    renderLoreList();
+    loreModalEl.classList.remove('hidden');
+}
+
+function renderLoreList() {
+    if (!loreListEl) return;
+    const lore = TX.lore || {};
+    const entries = Object.entries(lore);
+    if (!entries.length) {
+        loreListEl.innerHTML = '<p class="lore-empty">No hay lore todavía 📜</p>';
+        return;
+    }
+    loreListEl.innerHTML = entries.map(([id, e]) =>
+        `<button class="lore-item" data-lore-id="${id}" type="button">${escapeHtml(e.name || id)}</button>`
+    ).join('');
+}
+
+function showLoreEntry(id) {
+    const e = (TX.lore || {})[id];
+    if (!e) return;
+    if (loreViewTitleEl) loreViewTitleEl.textContent = e.name || id;
+    if (loreViewTextEl) loreViewTextEl.innerHTML = e.desc || '';
+    if (loreViewImgEl) loreViewImgEl.innerHTML = e.img ? `<img src="${e.img}" alt="" class="lore-img">` : '';
+    if (loreListEl) loreListEl.classList.add('hidden');
+    if (loreViewEl) loreViewEl.classList.remove('hidden');
+}
+
+function closeLoreView() {
+    if (loreListEl) loreListEl.classList.remove('hidden');
+    if (loreViewEl) loreViewEl.classList.add('hidden');
 }
 
 // --- Cola de notificaciones importantes (fin de partida) ---
@@ -3713,6 +3957,7 @@ function updateHeroInfo() {
 function startGame() {
     menuScreen.classList.add('hidden');
     gameScreen.classList.remove('hidden');
+    collapseVolumeControls();
     // En móvil el iPod se minimiza al entrar en el tablero (no tapa el juego);
     // el usuario puede desminimizarlo para interactuar con el reproductor.
     if (isMobileView()) setIpodMinimized(true);
@@ -3720,9 +3965,35 @@ function startGame() {
     initGame();
 }
 
+// Abandonar una partida en curso (Menú Principal / Cerrar sesión): se da por
+// PERDIDA, sin sumar logros ni dinero, y se detienen todos los timers/avisos
+// (Lucifer, desbloqueos, tiempo...) para que nada siga sonando tras salir.
+function abandonGame() {
+    if (!gameStarted || gameOver) return;
+    gameStarted = false;
+    gameOver = true;
+    clearInterval(timerInterval);
+    timerInterval = null;
+    stopLuciferMessages();
+    hideToast();
+    if (noticeModalEl) noticeModalEl.classList.add('hidden');
+    hideConfirmBubble();
+    recordGameResult('loss');
+    gameElapsed = 0;
+    luciferElapsed = 0;
+    clearLastResult();
+    updateRelicDragonButton();
+    renderHudAmulets();
+}
+
 function showMenu() {
-    if (gameStarted) commitPlayTime();
-    settleGameCounters();
+    const abandoning = gameStarted && !gameOver;
+    abandonGame();
+    collapseVolumeControls();
+    if (!abandoning) {
+        commitPlayTime();
+        settleGameCounters();
+    }
     gameStarted = false;
     clearInterval(timerInterval);
     stopLuciferMessages();
@@ -3738,8 +4009,6 @@ function showMenu() {
     gameScreen.classList.remove('lucifer-active');
     gameScreen.classList.add('hidden');
     menuScreen.classList.remove('hidden');
-    // Al volver al menú el iPod se expande para poder interactuar con él.
-    if (isMobileView()) setIpodMinimized(false);
     closeHudAmuletsPanel();
     updateRelicDragonButton();
     loadRanking();
@@ -4157,8 +4426,10 @@ function triggerSpiz() {
 
     if (revealed > 0) {
         renderBoard();
+        // Si el Spiz (último movimiento) completa el tablero, cuenta como
+        // "Spiz guardado" (igual que cuando lo cierra el flood de revealCell).
         if ((gameMode === 'classic' || gameMode === 'hybrid') && safeCellsRemaining === 0) {
-            winGame(false);
+            winGame(true);
         }
     }
 }
@@ -4279,6 +4550,11 @@ function revealCell(r, c) {
     if (r < 0 || r >= size || c < 0 || c >= size || revealed[r][c] || turulos[r][c]) return;
 
     if (spizCell && spizCell.r === r && spizCell.c === c && !spizTriggered) return;
+
+    // El flood NO atraviesa minas (tienen board 0): si se destaparan se revelaría
+    // casi todo el tablero con un solo clic y se corrompería la condición de
+    // victoria. Las bolsas solo se muestran al pisarlas (BOOM/Milagro/Syntek).
+    if (mines.some(m => m.r === r && m.c === c)) return;
 
     revealed[r][c] = true;
     safeCellsRemaining--;
@@ -4819,7 +5095,7 @@ if (ddPassword) ddPassword.addEventListener('click', () => { closeDropdown(); op
 if (ddInfo) ddInfo.addEventListener('click', () => { closeDropdown(); openInfoModal(); });
 if (ddFriends) ddFriends.addEventListener('click', openFriendsModal);
 if (ddLogout) ddLogout.addEventListener('click', logout);
-if (ddLore) ddLore.addEventListener('click', () => { closeDropdown(); showToast('Lore próximamente 📜'); });
+if (ddLore) ddLore.addEventListener('click', () => { closeDropdown(); openLoreModal(); });
 if (ddSettings) ddSettings.addEventListener('click', openSettingsModal);
 
 // Modal de contraseña
@@ -4853,6 +5129,32 @@ if (infoMoreBtn) {
     });
 }
 
+// Modal de Lore
+if (loreCloseBtn) loreCloseBtn.addEventListener('click', () => loreModalEl.classList.add('hidden'));
+if (loreBackBtn) loreBackBtn.addEventListener('click', closeLoreView);
+if (loreListEl) {
+    loreListEl.addEventListener('click', (e) => {
+        const item = e.target.closest('.lore-item');
+        if (item) showLoreEntry(item.dataset.loreId);
+    });
+}
+
+// Texto de Farlopín del menú: se puede cerrar con la X; se vuelve a leer desde
+// el Lore (📜). El texto vive en textos.js (TX.lore.farlopin).
+const storyBoxEl = document.querySelector('.story-box');
+const storyBoxTextEl = document.querySelector('.story-box-text');
+const storyCloseBtn = document.getElementById('story-close-btn');
+if (storyBoxTextEl && TX.lore && TX.lore.farlopin) {
+    storyBoxTextEl.innerHTML = TX.lore.farlopin.desc;
+}
+if (storyBoxEl && storyCloseBtn) {
+    if (localStorage.getItem('buscalopas_story_hidden') === '1') storyBoxEl.classList.add('hidden');
+    storyCloseBtn.addEventListener('click', () => {
+        storyBoxEl.classList.add('hidden');
+        localStorage.setItem('buscalopas_story_hidden', '1');
+    });
+}
+
 // Cerrar modales clicando en el fondo (fuera del globo).
 // Los importantes (Tienda, tutorial del Spiz, resultado) NO se cierran así.
 const CLICK_OUTSIDE_MODALS = {
@@ -4863,6 +5165,7 @@ const CLICK_OUTSIDE_MODALS = {
     'player-modal': () => playerModalEl.classList.add('hidden'),
     'suggestions-modal': () => suggestionsModalEl.classList.add('hidden'),
     'settings-modal': () => settingsModalEl.classList.add('hidden'),
+    'lore-modal': () => { if (loreModalEl) loreModalEl.classList.add('hidden'); },
     'shop-modal': () => shopModalEl.classList.add('hidden'),
     'amulet-modal': () => closeAmuletModal()
 };
@@ -4886,7 +5189,9 @@ if (hudTitleEl) {
 }
 
 // En móvil, clic fuera de los globos flotantes (chat / amigos / ranking) y del
-// panel de LopAmuletos también los cierra (convención móvil).
+// panel de LopAmuletos también los cierra (convención móvil). Los clics DENTRO
+// de un modal no tocan los paneles: así la X del visor de un LopAmuleto (abierto
+// desde el panel) vuelve al panel y no al menú.
 document.addEventListener('mousedown', (e) => {
     if (!isMobileView()) return;
     const chatBtn = document.getElementById('chat-open-btn');
@@ -4897,15 +5202,17 @@ document.addEventListener('mousedown', (e) => {
     const insideReq = requestsDropdownEl && requestsDropdownEl.contains(e.target);
     const insideRank = rankingPanelEl && rankingPanelEl.contains(e.target);
     const insideAll = hudAmuletsPanelEl && hudAmuletsPanelEl.contains(e.target);
+    const insideModal = !!(e.target.closest && e.target.closest('.modal, .notice-modal, .confirm-bubble'));
     const onBtn = (chatBtn && chatBtn.contains(e.target)) || (reqBtn && reqBtn.contains(e.target)) || (rankBtn && rankBtn.contains(e.target)) || (allBtn && allBtn.contains(e.target));
-    if (insideChat || insideReq || insideRank || insideAll || onBtn) return;
+    if (insideChat || insideReq || insideRank || insideAll || insideModal || onBtn) return;
     closeMobilePanels();
-    if (hudAmuletsPanelEl && !hudAmuletsPanelEl.classList.contains('hidden')) hudAmuletsPanelEl.classList.add('hidden');
+    closeHudAmuletsPanel();
 });
 
 // Tienda
-if (shopBtn) shopBtn.addEventListener('click', openShopModal);
 if (hudShopBtn) hudShopBtn.addEventListener('click', openShopModal);
+const menuDealerBtn = document.getElementById('menu-dealer-btn');
+if (menuDealerBtn) menuDealerBtn.addEventListener('click', openShopModal);
 if (shopCloseBtn) shopCloseBtn.addEventListener('click', () => shopModalEl.classList.add('hidden'));
 if (hudMoneyBtn) {
     hudMoneyBtn.addEventListener('click', () => {
@@ -5066,13 +5373,19 @@ if (hudAmuletsEl) {
 const hudAmuletsPanelEl = document.getElementById('hud-amulets-panel');
 if (hudAmuletsPanelEl) {
     hudAmuletsPanelEl.addEventListener('click', (e) => {
+        const pin = e.target.closest('.hap-pin');
+        if (pin) {
+            togglePinAmulet(pin.dataset.pinId);
+            return;
+        }
         const el = e.target.closest('.hap-item');
         if (!el) return;
-        hudAmuletsPanelEl.classList.add('hidden');
+        // Se abre el visor SIN cerrar el panel: al cerrar el modal con la X se
+        // vuelve al panel de LopAmuletos, no al menú.
         openAmuletModal(el.dataset.amuletId);
     });
     hudAmuletsPanelEl.addEventListener('mousedown', (e) => {
-        if (e.target === hudAmuletsPanelEl) hudAmuletsPanelEl.classList.add('hidden');
+        if (e.target === hudAmuletsPanelEl) closeHudAmuletsPanel();
     });
 }
 if (amuletCloseBtn) amuletCloseBtn.addEventListener('click', closeAmuletModal);
@@ -5274,8 +5587,16 @@ if (rankingListEl) {
     rankingListEl.addEventListener('click', (e) => {
         const row = e.target.closest('.lb-row');
         if (row && row.dataset.name) {
+            if (rankingPanelEl) rankingPanelEl.classList.remove('ranking-open');
             openPlayerModal(row.dataset.name);
         }
+    });
+}
+
+// X del ranking en móvil (además se cierra clicando fuera)
+if (rankingCloseBtn) {
+    rankingCloseBtn.addEventListener('click', () => {
+        if (rankingPanelEl) rankingPanelEl.classList.remove('ranking-open');
     });
 }
 

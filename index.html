@@ -13,7 +13,16 @@
 
     <header class="hud-header">
         <div class="hud-title" id="hud-title">⚡ Buscalopas <span id="hud-title-version"></span></div>
-        <div id="hud-amulets" class="hud-amulets"></div>
+        <div class="hud-row2">
+            <div id="hud-volume" class="hud-volume">
+                <button id="hud-volume-mute" type="button" title="Volumen">🔊</button>
+            </div>
+            <div id="hud-amulets" class="hud-amulets"></div>
+        </div>
+        <button id="hud-shop-btn" class="hud-shop-btn hidden" type="button" title="Tienda Lopera">
+            <span class="hud-shop-title"><span class="hud-shop-title-ico">💰</span>DEALER</span>
+            <img src="img/amulets/dragon.jpg" alt="Dragon Narco" class="hud-shop-dragon">
+        </button>
         <div class="hud-stats">
             <div class="hud-user-wrap">
                 <button id="hud-user-btn" class="hud-user" type="button">
@@ -40,10 +49,11 @@
         <div id="hud-amulets-panel-list" class="hud-amulets-panel-list"></div>
     </div>
 
-    <button id="hud-shop-btn" class="hud-shop-btn hidden" type="button" title="Tienda Lopera">
-        <span class="hud-shop-title">💰 DEALER</span>
-        <img src="img/amulets/dragon.jpg" alt="Dragon Narco" class="hud-shop-dragon">
-    </button>
+    <div id="hud-volume-panel" class="hud-volume-panel hidden">
+        <button id="hud-volume-panel-mute" type="button" title="Silenciar / Activar">🔊</button>
+        <input type="range" id="hud-volume-slider" min="0" max="1" step="0.05" value="0.4" autocomplete="off">
+        <span id="hud-volume-value">40%</span>
+    </div>
 
     <div id="register-banner" class="register-banner hidden">
         <span id="register-banner-text">¡Regístrate! Guarda tus progresos, juega con tus amigos y analiza tus estadísticas.</span>
@@ -51,6 +61,7 @@
     </div>
 
     <aside id="ranking-panel" class="ranking-panel">
+        <button id="ranking-close-btn" class="ranking-close" type="button" title="Cerrar ranking">✕</button>
         <div class="ranking-title">🏆 Ranking Lopero</div>
         <ol id="ranking-list"><li class="ranking-empty">Cargando...</li></ol>
     </aside>
@@ -95,8 +106,11 @@
         <div class="menu-card">
             
             <div class="story-box">
-                Farlopín tiene jaleo este finde y quiere montarse una buena juerguecilia. Su objetivo es recopilar la mayor cantidad de bolsas para forzar la máquina al máximo. Pero cuidado, que si tropieza "accidentalmente" con ellas antes de tiempo, la habrá vuelto a liar entresemana.<br><br>
-                Piénsate bien cuánto te la quieres pegar y dale gas a la lopa.
+                <button id="story-close-btn" class="story-close" type="button" title="Cerrar">✕</button>
+                <div class="story-box-text">
+                    Farlopín tiene jaleo este finde y quiere montarse una buena juerguecilia. Su objetivo es recopilar la mayor cantidad de bolsas para forzar la máquina al máximo. Pero cuidado, que si tropieza "accidentalmente" con ellas antes de tiempo, la habrá vuelto a liar entresemana.<br><br>
+                    Piénsate bien cuánto te la quieres pegar y dale gas a la lopa.
+                </div>
             </div>
 
             <div class="stats-bar" style="margin-bottom: 0; justify-content: center;">
@@ -132,7 +146,10 @@
             </div>
 
             <button id="start-btn" class="btn-start">¡DALE GAS!</button>
-            <button id="shop-btn" class="btn-secondary shop-btn hidden" type="button">🛒 Tienda Lopera</button>
+
+            <button id="menu-dealer-btn" class="btn-start menu-dealer-btn hidden" type="button">
+                <img src="img/dragon.jpg" alt="Dragon Narco" class="menu-dealer-dragon"> DEALER
+            </button>
         </div>
     </div>
 
@@ -246,24 +263,43 @@
         </div>
     </div>
 
+    <div id="lore-modal" class="modal hidden">
+        <div class="modal-card lore-card">
+            <button id="lore-close-btn" class="modal-x" title="Cerrar">✕</button>
+            <h2>📜 Lore</h2>
+            <div id="lore-list" class="lore-list"></div>
+            <div id="lore-view" class="lore-view hidden">
+                <button id="lore-back-btn" class="btn-secondary lore-back-btn" type="button">‹ Volver</button>
+                <div id="lore-view-img" class="lore-view-img"></div>
+                <h3 id="lore-view-title" class="lore-view-title"></h3>
+                <p id="lore-view-text" class="lore-view-text"></p>
+            </div>
+        </div>
+    </div>
+
     <div id="shop-modal" class="modal hidden">
         <div class="modal-card shop-card">
             <button id="shop-close-btn" class="modal-x" title="Cerrar">✕</button>
-            <h2>🐉 Tienda</h2>
             <div class="shop-layout">
-                <div class="shop-stock">
-                    <p class="shop-today">🛒 Stock de hoy — <span id="shop-date"></span></p>
-                    <div id="shop-list" class="shop-list"></div>
+                <div class="shop-dragon" id="shop-dragon-panel" title="Ver el dragón en grande">
+                    <img src="img/dragon.jpg" alt="Dragon Narco de Ojos Azules" id="shop-dragon-img">
                 </div>
                 <div class="shop-right">
-                    <div class="shop-wallet-big" title="Tu cartera">💰 <span id="shop-wallet">0</span>€</div>
-                    <div class="shop-dragon">
-                        <img src="img/dragon.jpg" alt="Dragon Narco de Ojos Azules">
+                    <h2 class="shop-title">🐉 Tienda</h2>
+                    <div class="shop-wallet" title="Tu cartera">💰 <span id="shop-wallet">0</span>€</div>
+                    <div class="shop-stock">
+                        <p class="shop-today">🛒 Stock de hoy — <span id="shop-date"></span></p>
+                        <div id="shop-list" class="shop-list"></div>
+                        <div id="shop-ipod-slot" class="shop-ipod-slot"></div>
                     </div>
-                    <div id="shop-ipod-slot" class="shop-ipod-slot"></div>
                 </div>
             </div>
         </div>
+    </div>
+
+    <div id="dragon-view" class="dragon-view hidden">
+        <button id="dragon-view-close" class="modal-x dragon-view-close" type="button" title="Cerrar">✕</button>
+        <img src="img/dragon.jpg" alt="Dragon Narco de Ojos Azules">
     </div>
 
     <div id="confirm-bubble" class="confirm-bubble hidden">
@@ -343,7 +379,7 @@
 
     <button id="result-reopen-btn" class="result-reopen-btn hidden" type="button" title="Ver resultado">💰</button>
 
-    <button id="ranking-toggle-btn" class="floating-btn floating-ranking" type="button" title="Ranking">🏆<span id="ranking-badge" class="chat-badge hidden">0</span></button>
+    <button id="ranking-toggle-btn" class="floating-btn floating-ranking" type="button" title="Ranking">🏆 Ranking<span id="ranking-badge" class="chat-badge hidden">0</span></button>
     <button id="requests-open-btn" class="floating-btn floating-requests hidden" type="button">🤝 Amigos<span id="requests-badge" class="chat-badge hidden">0</span></button>
     <div id="requests-dropdown" class="requests-dropdown hidden">
         <div class="requests-title">🤝 Amigos</div>

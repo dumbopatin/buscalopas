@@ -102,6 +102,49 @@ h1 {
     font-size: 0.95em;
     line-height: 1.5;
     text-align: left;
+    position: relative;
+    padding-right: 42px;
+}
+
+.story-box-text {
+    display: inline;
+}
+
+.story-close {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 1.1em;
+    line-height: 1;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: var(--transition);
+}
+
+.story-close:hover {
+    color: var(--accent-pink);
+    background: rgba(255, 112, 166, 0.1);
+}
+
+/* --- Menú: botón DEALER (solo móvil) --- */
+#menu-dealer-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.menu-dealer-dragon {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--accent-purple);
+    box-shadow: 0 0 12px rgba(123, 44, 191, 0.6);
 }
 
 /* --- DESPLEGABLES / SELECTS REDISEÑADOS --- */
@@ -661,6 +704,12 @@ select option {
     text-align: right;
 }
 
+/* Volumen DENTRO de la barra superior: solo se muestra en móvil (en PC se usa
+   el control flotante de abajo-derecha). El primer toque lo despliega. */
+#hud-volume {
+    display: none;
+}
+
 /* El volumen SIEMPRE queda abajo-derecha; el iPod se coloca por encima
    de él (bottom más alto) para que nunca se pisen. */
 
@@ -682,6 +731,12 @@ select option {
     box-shadow: 0 4px 25px rgba(0, 0, 0, 0.5);
     flex-wrap: wrap;
     gap: 8px;
+}
+
+/* En escritorio la fila 2 es transparente (sus hijos son ítems directos de la
+   barra, igual que antes); en móvil se convierte en la fila volumen+LopAmuletos. */
+.hud-row2 {
+    display: contents;
 }
 
 .hud-title {
@@ -711,7 +766,8 @@ select option {
 }
 
 /* --- BOTÓN DE LA TIENDA (DEALER) FUERA DE LA BARRA, ENTRE BARRA Y RANKING ---
-   (misma posición en menú y durante la partida: no se mueve) */
+   (misma posición en menú y durante la partida: no se mueve. En PC su ancho
+   iguala al del ranking lopero: 290px, y en ventanas medianas 270px.) */
 .hud-shop-btn {
     position: fixed;
     right: 24px;
@@ -721,7 +777,7 @@ select option {
     flex-direction: column;
     align-items: center;
     gap: 12px;
-    width: 320px;
+    width: 290px;
     padding: 22px 26px 26px;
     background: linear-gradient(160deg, rgba(123, 44, 191, 0.5), rgba(255, 112, 166, 0.28));
     border: 2px solid var(--accent-pink);
@@ -740,7 +796,7 @@ select option {
 .hud-shop-title {
     font-family: 'Orbitron', sans-serif;
     font-weight: 700;
-    font-size: 2.2em;
+    font-size: 2em;
     letter-spacing: 3px;
     text-transform: uppercase;
     color: var(--accent-pink);
@@ -748,6 +804,7 @@ select option {
     display: flex;
     align-items: center;
     gap: 10px;
+    white-space: nowrap;
 }
 
 .hud-shop-dragon {
@@ -930,7 +987,7 @@ select option {
     padding: 12px;
     overflow-y: auto;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(86px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
     gap: 10px;
 }
 
@@ -963,6 +1020,69 @@ select option {
     filter: grayscale(1) brightness(0.7);
     opacity: 0.75;
     border-color: rgba(167, 169, 190, 0.4);
+}
+
+.hap-item.hap-pinned {
+    border-color: var(--accent-pink);
+    box-shadow: 0 0 12px rgba(255, 112, 166, 0.3);
+}
+
+/* Fila inferior de cada LopAmuleto del panel: estado (izq) + Fijar/Quitar (der) */
+.hap-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+    width: 100%;
+    margin-top: 2px;
+}
+
+.hap-status {
+    font-size: 0.58em;
+    font-weight: 700;
+    color: var(--accent-cyan);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+.hap-pin {
+    flex-shrink: 0;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.58em;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 4px 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    color: #fff;
+    white-space: nowrap;
+    line-height: 1.1;
+    transition: var(--transition);
+}
+
+/* Fijar = morado (mismo corte que ENTRAR del login); Quitar = negro (btn-neon-black) */
+.hap-pin-fijar {
+    background: linear-gradient(135deg, var(--accent-pink), var(--accent-purple));
+    box-shadow: 0 0 10px rgba(255, 112, 166, 0.35);
+}
+
+.hap-pin-fijar:hover {
+    filter: brightness(1.15);
+    transform: translateY(-1px);
+}
+
+.hap-pin-quitar {
+    background: linear-gradient(180deg, #221f33 0%, #0d0c18 100%);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.hap-pin-quitar:hover {
+    filter: brightness(1.15);
+    transform: translateY(-1px);
 }
 
 .hap-item .amu-img,
@@ -1594,20 +1714,80 @@ select option {
     border-color: var(--accent-cyan);
 }
 
-/* --- TIENDA --- */
-.shop-btn {
+/* --- LORE (📜) --- */
+.lore-card {
+    width: 480px;
+    max-width: 96%;
+}
+
+.lore-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.lore-item {
     width: 100%;
-    text-align: center;
-    padding: 14px;
-    margin-top: 6px;
+    padding: 12px 16px;
+    border: 1px solid var(--accent-purple);
+    border-radius: 12px;
+    background: rgba(123, 44, 191, 0.12);
+    color: var(--text-main);
+    font-family: 'Rajdhani', sans-serif;
     font-size: 1.05em;
+    font-weight: 700;
+    text-align: left;
+    cursor: pointer;
+    transition: var(--transition);
 }
 
-.shop-btn:hover {
+.lore-item:hover {
     border-color: var(--accent-pink);
-    box-shadow: var(--neon-glow);
+    background: rgba(123, 44, 191, 0.25);
+    box-shadow: 0 0 14px rgba(255, 112, 166, 0.35);
 }
 
+.lore-empty {
+    color: var(--text-dim);
+    text-align: center;
+}
+
+.lore-view {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+}
+
+.lore-back-btn {
+    align-self: flex-start;
+}
+
+.lore-view-img img {
+    max-width: 180px;
+    width: 100%;
+    border-radius: 14px;
+    border: 2px solid var(--accent-purple);
+    box-shadow: 0 0 18px rgba(123, 44, 191, 0.5);
+}
+
+.lore-view-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.2em;
+    letter-spacing: 1px;
+    color: var(--accent-pink);
+    text-transform: uppercase;
+    text-align: center;
+}
+
+.lore-view-text {
+    color: var(--text-dim);
+    font-size: 1em;
+    line-height: 1.55;
+    text-align: left;
+}
+
+/* --- TIENDA --- */
 .shop-card {
     width: 780px;
     max-width: 96%;
@@ -1624,50 +1804,28 @@ select option {
 }
 
 .shop-layout {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 20px;
     align-items: stretch;
-}
-
-.shop-stock {
     flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    max-height: 66vh;
-    overflow-y: auto;
-}
-
-.shop-right {
-    width: 47%;
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
     min-height: 0;
 }
 
-.shop-wallet-big {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 2em;
-    letter-spacing: 1px;
-    color: var(--accent-pink);
-    text-shadow: 0 0 22px rgba(255, 112, 166, 0.6);
-    background: rgba(255, 112, 166, 0.08);
-    border: 1px solid rgba(255, 112, 166, 0.4);
-    border-radius: 14px;
-    padding: 14px 18px;
-    text-align: center;
-}
-
+/* Columna IZQUIERDA: el dragón, más grande, ocupando toda la columna. Al
+   clicar se abre la vista ampliada (dragon-view). */
 .shop-dragon {
-    flex: 1;
-    min-height: 0;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 4px;
+    cursor: zoom-in;
+    border-radius: 16px;
+    min-height: 0;
+}
+
+.shop-dragon:hover {
+    background: rgba(123, 44, 191, 0.12);
 }
 
 .shop-dragon img {
@@ -1679,6 +1837,79 @@ select option {
     border-radius: 16px;
     border: 2px solid var(--accent-purple);
     box-shadow: 0 0 30px rgba(123, 44, 191, 0.6);
+}
+
+/* Columna DERECHA: título equidistante entre la X y el dragón, dinero y stock. */
+.shop-right {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+    min-height: 0;
+}
+
+.shop-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.3em;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent-pink);
+    text-shadow: var(--neon-glow);
+    text-align: center;
+    margin: 0;
+    padding-right: 30px;
+}
+
+.shop-wallet {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.1em;
+    letter-spacing: 1px;
+    color: var(--accent-cyan);
+    background: rgba(76, 201, 240, 0.08);
+    border: 1px solid rgba(76, 201, 240, 0.35);
+    border-radius: 12px;
+    padding: 8px 14px;
+    text-align: center;
+}
+
+/* --- Vista ampliada del dragón (al clicar la imagen del dealer) --- */
+.dragon-view {
+    position: fixed;
+    inset: 0;
+    z-index: 2800;
+    background: rgba(0, 0, 0, 0.88);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    cursor: zoom-out;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.dragon-view img {
+    max-width: 92vw;
+    max-height: 92vh;
+    object-fit: contain;
+    border-radius: 16px;
+    border: 2px solid var(--accent-purple);
+    box-shadow: 0 0 60px rgba(123, 44, 191, 0.7);
+}
+
+.dragon-view-close {
+    position: absolute;
+    top: 16px;
+    right: 18px;
+    font-size: 1.6em;
+}
+
+.shop-stock {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 66vh;
+    overflow-y: auto;
 }
 
 .shop-today {
@@ -1791,6 +2022,29 @@ select option {
     text-align: center;
     margin-bottom: 12px;
     text-shadow: var(--neon-glow);
+}
+
+/* X de cierre del ranking (solo se muestra en móvil, con el desplegable) */
+.ranking-close {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    display: none;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 1.2em;
+    line-height: 1;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 8px;
+    transition: var(--transition);
+    z-index: 2;
+}
+
+.ranking-close:hover {
+    color: var(--accent-pink);
+    transform: scale(1.15);
 }
 
 .ranking-panel ol {
@@ -2400,6 +2654,9 @@ select option {
     align-items: center;
     gap: 12px;
     padding: 12px 14px;
+    /* Se puede arrastrar a un lado para cerrar la notificación (móvil y PC) */
+    touch-action: pan-y;
+    cursor: grab;
 }
 
 .toast-icon {
@@ -3749,13 +4006,13 @@ body.syntek-immunity #board {
     .hud-shop-btn {
         right: 16px;
         top: 160px;
-        width: 300px;
+        width: 270px;
         padding: 16px 20px 18px;
         gap: 9px;
     }
 
     .hud-shop-title {
-        font-size: 1.7em;
+        font-size: 1.6em;
         letter-spacing: 2px;
     }
 
@@ -3770,7 +4027,7 @@ body.syntek-immunity #board {
     .hud-shop-btn {
         flex-direction: row;
         top: 200px;
-        width: auto;
+        width: 270px;
         padding: 8px 16px;
         gap: 8px;
     }
@@ -3845,10 +4102,10 @@ body.syntek-immunity #board {
         animation: shake 0.2s infinite;
     }
 
-    /* La fila de botones (Menú/Reiniciar) baja un poco para no chocar con el
-       botón de volumen, que queda justo bajo el HUD. */
+    /* La fila de botones (Menú/Reiniciar) queda justo bajo el HUD (el volumen
+       ya vive en la barra, no hay globo flotante que esquivar). */
     body:has(#game-screen:not(.hidden)) .game-controls {
-        margin-top: 34px;
+        margin-top: 6px;
     }
 
     .menu-card {
@@ -3858,34 +4115,67 @@ body.syntek-immunity #board {
         gap: 14px;
     }
 
-    /* --- HUD superior en DOS FILAS:
-       Fila 1: título + menú de usuario + dinero (tienda).
-       Fila 2: LopAmuletos con scroll horizontal (se ven todos los que quepan). --- */
-    .hud-header {
-        padding: 6px 10px 8px;
-        gap: 4px 12px;
-        align-items: center;
-        flex-wrap: wrap;
-    }
-
-    /* La versión se quita en móvil: deja aire para separar título / usuario / dinero */
-    #hud-title-version {
+    /* En móvil la fila superior de usuario + dinero del menú se quita: el dinero
+       está en el HUD (arriba a la derecha) y el usuario también. */
+    .menu-card .stats-bar {
         display: none;
     }
 
+    #menu-dealer-btn:not(.hidden) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 16px;
+        font-size: 1em;
+    }
+
+    /* --- HUD superior en DOS FILAS (grid explícito, sin sorpresas de wrap):
+       Fila 1: título + menú de usuario/dinero.
+       Fila 2 (.hud-row2) a TODO el ancho: volumen + LopAmuletos; el volumen
+       queda a la izquierda del botón de Lopamuletos y los fijados se reparten
+       hasta el borde derecho. --- */
+    .hud-header {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        grid-template-areas:
+            "title stats"
+            "row2 row2";
+        align-items: center;
+        padding: 6px 10px 8px;
+        gap: 4px 12px;
+    }
+
+    .hud-row2 {
+        grid-area: row2;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+    }
+
     .hud-title {
+        grid-area: title;
         font-size: 0.7em;
         letter-spacing: 1px;
         white-space: nowrap;
         padding: 6px 0;
+        min-width: 0;
     }
 
     .hud-stats {
+        grid-area: stats;
+        justify-self: end;
         gap: 12px;
         font-size: 0.9em;
         flex-wrap: nowrap;
         margin-left: auto;
         min-width: 0;
+    }
+
+    /* La versión se quita en móvil: deja aire para separar título / usuario / dinero */
+    #hud-title-version {
+        display: none;
     }
 
     .hud-user {
@@ -3914,16 +4204,22 @@ body.syntek-immunity #board {
     }
 
     .hud-amulets {
-        order: 3;
-        flex: 1 0 100%;
+        flex: 1 1 auto;
         flex-wrap: nowrap;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
         min-width: 0;
-        gap: 12px;
+        gap: 8px;
         min-height: 46px;
         padding: 1px 0 3px;
+        /* El volumen + botón de Lopamuletos quedan pegados a la izquierda y los
+           fijados se reparten hacia la derecha, equidistantes y acabando en el
+           borde derecho de la pantalla (el botón de Lopamuletos empuja). */
         justify-content: flex-start;
+    }
+
+    #hud-amulets-all {
+        margin-right: auto;
     }
 
     .user-dropdown {
@@ -3933,9 +4229,9 @@ body.syntek-immunity #board {
     }
 
     .amu {
-        width: 40px;
-        height: 40px;
-        font-size: 1.35em;
+        width: 38px;
+        height: 38px;
+        font-size: 1.3em;
         flex-shrink: 0;
     }
 
@@ -3945,11 +4241,20 @@ body.syntek-immunity #board {
         font-size: 0.55em;
     }
 
-    /* Botón ▾ "ver todos" (a la IZQUIERDA del todo de la fila de amuletos,
-       lejos del dinero y el menú) + panel de todos los LopAmuletos (móvil) */
+    /* Botón "Lopamuletos" (a la IZQUIERDA del todo de la fila de amuletos,
+       lejos del dinero y el menú): píldora con la palabra, abre el panel
+       con TODOS los LopAmuletos. En la barra solo se ven los FIJADOS
+       (máx 4, elegidos en el panel); el resto vive dentro del panel. */
     .hud-amulets-all {
         display: inline-flex;
         flex-shrink: 0;
+        width: auto;
+        height: auto;
+        border-radius: 14px;
+        padding: 6px 10px;
+        font-size: 0.75em;
+        white-space: nowrap;
+        gap: 6px;
         margin-right: 2px;
     }
 
@@ -3957,6 +4262,12 @@ body.syntek-immunity #board {
         top: 128px;
         left: 8px;
         right: 8px;
+    }
+
+    /* Mientras se inspeccionan los LopAmuletos, el scroll queda limitado al
+       panel (el fondo de la página no se mueve). */
+    body.amulets-panel-open {
+        overflow: hidden;
     }
 
     /* --- Pantalla de partida: fila de botones arriba (Menú | Reiniciar) y
@@ -4112,18 +4423,43 @@ body.syntek-immunity #board {
         display: none;
     }
 
+    /* Desplegable del ranking en móvil: tarjeta CENTRADA en la zona central,
+       completa (sin scroll) y con X de cierre (además del clic fuera). */
     .ranking-panel.ranking-open {
-        display: block;
+        display: flex;
+        flex-direction: column;
         position: fixed;
-        right: 10px;
-        top: 110px;
-        left: auto;
-        transform: none;
-        width: min(300px, calc(100vw - 20px));
-        max-height: calc(100vh - 140px);
-        overflow-y: auto;
-        z-index: 1500;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+        left: 50%;
+        top: 50%;
+        right: auto;
+        bottom: auto;
+        transform: translate(-50%, -50%);
+        width: min(330px, calc(100vw - 24px));
+        max-width: 94vw;
+        max-height: none;
+        overflow: visible;
+        z-index: 1800;
+        background: rgba(10, 10, 18, 0.97);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        border: 1px solid var(--accent-purple);
+        border-radius: 16px;
+        padding: 18px 20px 20px;
+        box-shadow: 0 16px 50px rgba(0, 0, 0, 0.7), 0 0 30px rgba(123, 44, 191, 0.25);
+        animation: rankIn 0.25s ease-out;
+    }
+
+    @keyframes rankIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    .ranking-panel.ranking-open .ranking-title {
+        padding-right: 26px;
+    }
+
+    .ranking-close {
+        display: block;
     }
 
     /* --- Modales --- */
@@ -4179,42 +4515,41 @@ body.syntek-immunity #board {
     }
 
     .shop-layout {
+        grid-template-columns: 1fr;
+        gap: 12px;
         flex: 1;
         min-height: 0;
-        flex-direction: column;
-        gap: 12px;
     }
 
     .shop-right {
-        display: contents;
+        flex: 1;
+        min-height: 0;
     }
 
     .shop-dragon {
-        order: -2;
-        flex: 0 0 auto;
-        min-height: 0;
         padding: 0;
+        flex: 0 0 auto;
     }
 
     .shop-dragon img {
-        height: 140px;
+        height: 150px;
         width: auto;
         max-width: 100%;
         object-fit: contain;
         border-radius: 16px;
     }
 
-    .shop-wallet-big {
-        order: -1;
-        font-size: 1.5em;
-        padding: 10px;
+    .shop-title {
+        font-size: 1.1em;
+        padding-right: 30px;
     }
 
-    /* La lista del stock es el ÚNICO scrolleable de la tienda: con barra de
-       scroll visible a la derecha para que se entienda que hay más contenido
-       (sin scrolls anidados). */
+    .shop-wallet {
+        font-size: 1em;
+        padding: 8px 12px;
+    }
+
     .shop-stock {
-        order: 1;
         flex: 1;
         min-height: 0;
         max-height: none;
@@ -4237,8 +4572,35 @@ body.syntek-immunity #board {
     }
 
     .shop-ipod-slot {
-        order: 2;
         flex-shrink: 0;
+    }
+
+    /* El iPod es un objeto especial: dentro del scroll del stock se estiliza
+       como un artículo más (en fila, con la compra a la derecha) y NO ocupa un
+       slot fijo al final que moleste al navegar por los objetos comprables. */
+    .shop-stock > .shop-ipod-slot {
+        order: 0;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 12px;
+        text-align: left;
+    }
+
+    .shop-stock > .shop-ipod-slot .shop-ipod-row {
+        width: auto;
+        flex: 1 1 auto;
+    }
+
+    .shop-stock > .shop-ipod-slot .shop-ipod-img {
+        width: 44px;
+    }
+
+    .shop-stock > .shop-ipod-slot > button.shop-buy,
+    .shop-stock > .shop-ipod-slot > .shop-ipod-row:last-child {
+        flex: 0 0 auto;
+        width: auto;
     }
 
     .shop-list {
@@ -4262,10 +4624,23 @@ body.syntek-immunity #board {
         bottom: 64px;
     }
 
+    /* Botón del ranking a la DERECHA, alineado con Amigos (left) y justo encima
+       del iPod, que se ha bajado a la altura del Chat. Sin iPod queda abajo a la
+       derecha (bottom 10, igual que Chat); con iPod minimizado sube un poco más
+       y con el iPod completo, aún más arriba (sin pisarse). */
     .floating-ranking {
         display: inline-flex;
-        left: 10px;
-        bottom: 118px;
+        left: auto;
+        right: 10px;
+        bottom: 10px;
+    }
+
+    body.ipod-owned .floating-ranking {
+        bottom: 68px;
+    }
+
+    body.ipod-owned:not(.ipod-minimized) .floating-ranking {
+        bottom: 268px;
     }
 
     /* Desplegable de Amigos: por encima del botón del ranking (118+37+11) */
@@ -4368,11 +4743,10 @@ body.syntek-immunity #board {
         font-size: 0.8em;
     }
 
-    /* --- Volumen flotante en móvil: botón PLEGADO (círculo con el símbolo
-       del sonido) arriba-izquierda, en el hueco entre el HUD y el título.
-       En PARTIDA baja a 112px (el título desaparece) para quedar claramente
-       POR DEBAJO de la barra de estados y los LopAmuletos y no pillarlos al
-       tocar. También está en ⚙️ Ajustes del menú. --- */
+    /* --- Volumen en móvil: el control vive DENTRO de la barra de tareas
+       (#hud-volume, a la izquierda del botón de LopAmuletos). El control
+       flotante queda OCULTO salvo en el login (donde se muestra un poco más
+       arriba, fuera del globo del formulario). --- */
     #volume-control-floating {
         top: 112px;
         left: 10px;
@@ -4387,54 +4761,95 @@ body.syntek-immunity #board {
         overflow: hidden;
         opacity: 0.95;
         z-index: 2100;
-    }
-
-    #volume-control-floating button {
-        font-size: 1.05em;
-        line-height: 1;
-    }
-
-    #volume-control-floating input[type="range"],
-    #volume-control-floating #volume-value {
         display: none;
     }
 
-    #volume-control-floating.volume-expanded {
-        width: auto;
-        height: auto;
-        padding: 4px 10px;
-        border-radius: 20px;
-        gap: 7px;
-        justify-content: flex-start;
-        overflow: visible;
+    /* En el login (usuario / contraseña) el volumen sale del hueco de la barra
+       y queda ARRIBA, fuera del globo del formulario: aunque se abra el teclado
+       (modal compacto a 96px) no se queda dentro de la tarjeta. */
+    body:has(#user-modal:not(.hidden)) #volume-control-floating,
+    body:has(#pass-modal:not(.hidden)) #volume-control-floating {
+        display: flex;
+        top: 62px;
     }
 
-    #volume-control-floating.volume-expanded input[type="range"],
-    #volume-control-floating.volume-expanded #volume-value {
+    /* --- Volumen en la barra de tareas: botón que despliega un menú VERTICAL
+       debajo de él. En móvil vive en la fila 2 (.hud-row2), a la izquierda del
+       botón de Lopamuletos. En el login se oculta (aparece el flotante). --- */
+    #hud-volume {
         display: block;
+        position: relative;
+        width: 34px;
+        height: 34px;
+        flex-shrink: 0;
     }
 
-    #volume-control-floating input[type="range"] {
-        width: 80px;
+    #hud-volume-mute {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: rgba(15, 14, 23, 0.9);
+        border: 1px solid var(--accent-purple);
+        box-shadow: 0 0 12px rgba(123, 44, 191, 0.5);
+        font-size: 1.05em;
+        line-height: 1;
+        cursor: pointer;
+        padding: 0;
     }
 
-    #volume-control-floating #volume-value {
-        font-size: 0.75em;
-        min-width: 0;
-        text-align: center;
+    .hud-volume-panel {
+        position: fixed;
+        z-index: 2500;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        min-width: 150px;
+        background: rgba(10, 10, 18, 0.97);
+        border: 1px solid var(--accent-purple);
+        border-radius: 14px;
+        padding: 12px 14px;
+        box-shadow: 0 14px 36px rgba(0, 0, 0, 0.65), 0 0 20px rgba(123, 44, 191, 0.3);
+    }
+
+    .hud-volume-panel button {
+        background: none;
+        border: none;
+        font-size: 1.3em;
+        line-height: 1;
+        cursor: pointer;
+        padding: 0;
+    }
+
+    .hud-volume-panel input[type="range"] {
+        width: 120px;
+        accent-color: var(--accent-pink);
+        cursor: pointer;
+    }
+
+    .hud-volume-panel #hud-volume-value {
+        font-size: 0.8em;
+        color: var(--accent-pink);
+        font-weight: 700;
+    }
+
+    body:has(#user-modal:not(.hidden)) #hud-volume,
+    body:has(#pass-modal:not(.hidden)) #hud-volume,
+    .kb-open #hud-volume {
+        display: none;
     }
 
     /* --- Botones de reliquias, más pequeños y no tapan el tablero --- */
     .relic-dragon-btn {
         left: 10px;
-        top: 34%;
+        top: 30%;
         width: 64px;
         height: 64px;
     }
 
     .relic-syntek-btn {
         left: 10px;
-        top: calc(34% + 76px);
+        top: calc(30% + 76px);
         width: 64px;
         height: 64px;
     }
@@ -4489,36 +4904,21 @@ body.syntek-immunity #board {
         font-size: 1em;
     }
 
-    /* --- Botón DEALER compacto en móvil (píldora pequeña, bajo el HUD) --- */
-    .hud-shop-btn {
-        display: flex;
-        flex-direction: row;
-        top: 112px;
-        right: 10px;
-        width: auto;
-        padding: 8px 14px;
-        gap: 8px;
-    }
-
-    .hud-shop-title {
-        font-size: 1em;
-        letter-spacing: 1px;
-    }
-
-    .hud-shop-dragon {
+    /* --- DEALER en móvil: YA NO está en la barra de estado (la tienda se abre
+       con el botón DEALER del menú principal, junto al dinero dorado). El botón
+       del HUD se oculta en móvil y en partida. --- */
+    #hud-shop-btn,
+    body:has(#game-screen:not(.hidden)) .hud-shop-btn {
         display: none;
     }
 
-    .ranking-panel.ranking-open {
-        top: 205px;
-    }
-
     /* --- iPod en móvil: nano 3 compacto abajo-derecha (siempre interactivo).
-           Se empequeñece para caber entre el tablero (9x9) y el volumen.
-           Con el botón "—" se minimiza a un iPod shuffle compacto. --- */
+           Se empequeñece para caber y se baja a la altura del botón de Chat
+           (bottom 10) para que en partida no moleste al tablero. Con el botón
+           "—" se minimiza a un iPod shuffle compacto. --- */
     .ipod-panel {
         right: 10px;
-        bottom: 52px;
+        bottom: 10px;
     }
 
     .ipod-minimize-btn {
@@ -4534,8 +4934,8 @@ body.syntek-immunity #board {
 
     .ipod-shuffle-body {
         width: 92px;
-        padding: 6px 6px 8px;
-        gap: 5px;
+        padding: 4px 6px 6px;
+        gap: 4px;
         border-radius: 12px;
     }
 

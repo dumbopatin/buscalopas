@@ -116,6 +116,19 @@ window.TEXTOS = {
         desc: 'Cuando el tiempo baja de 30s entras en <b>modo Lucifer</b>: la música cambia y los <b>turulos correctos valen el doble de pasta</b>. Compra la Mejora de Lucifer para subir aún más ese bonus.'
     },
 
+    // Lore (se lee desde el desplegable del usuario, 📜)
+    lore: {
+        farlopin: {
+            name: '⚡ Farlopín',
+            desc: 'Farlopín tiene jaleo este finde y quiere montarse una buena juerguecilia. Su objetivo es recopilar la mayor cantidad de bolsas para forzar la máquina al máximo. Pero cuidado, que si tropieza "accidentalmente" con ellas antes de tiempo, la habrá vuelto a liar entresemana.<br><br>Piénsate bien cuánto te la quieres pegar y dale gas a la lopa.'
+        },
+        spiz: {
+            name: '⚡ El Spiz',
+            desc: 'El Spiz es tu salvavidas: al tocarlo te da un <b>+20% de tiempo</b> (y <b>+40%</b> en modo Lucifer). Si terminas la partida <b>sin gastarlo</b>, cobras un bonus extra de pasta. Mejóralo en la tienda para que dé más tiempo y revele zona.',
+            img: 'img/spiz.jpg'
+        }
+    },
+
     // Pantalla de resultado
     resultado: {
         victoria: '🏆 ¡Victoria!',

@@ -336,22 +336,40 @@ RESUMEN MOBILE — CÓMO PULIR SIN ROMPER (para próximas sesiones)
   (bottom:170), derecha:10px. No chocan con volumen ni con las reliquias (izq).
   OJO: el shake de Lucifer en móvil se aplica a #board, NO a #game-screen (su
   transform rompe el position:fixed de estos globos).
-- Globos exclusivos: closeMobilePanels(except) + listener global de mousedown.
-- Panel de LopAmuletos: botón #hud-amulets-all (▾, a la IZQUIERDA de la fila) +
-  #hud-amulets-panel.
-- En partida (móvil): el título h1/.subtitle y el DEALER (#hud-shop-btn) se ocultan
-  con body:has(#game-screen:not(.hidden)); la tienda se abre con 💰 del HUD.
-- Volumen móvil: top 112px en TODAS las pantallas (menú/partida/login), left:10,
-  z-index 2100 (por encima de los modales 2000: se ve también en el login).
+- Globos exclusivos: closeMobilePanels(except) + listener global de mousedown (en
+  móvil un clic dentro de un modal NO cierra los paneles: la X del visor de un
+  LopAmuleto vuelve al panel, no al menú).
+- LOPAMULETOS MÓVIL: en la barra SOLO se ven los FIJADOS (máx 4) + el botón
+  #hud-amulets-all (▾) que abre el panel con TODOS. Fijar/Quitar por amuleto en
+  el panel (.hap-pin: Fijar morado / Quitar negro, máx 4 con toast "🔒 Máximo 4").
+  statsData.lopa.pinned (normalizeStats lo filtra a 4). MAX_PINNED=4.
+- BARRA SUPERIOR MÓVIL (grid 2 filas): fila 1 = título + usuario/dinero;
+  fila 2 (.hud-row2, ancho completo) = volumen + Lopamuletos + fijados a la
+  derecha (equidistantes al borde; #hud-amulets-all con margin-right:auto).
+- VOLUMEN MÓVIL: botón en la barra que despliega un panel VERTICAL debajo
+  (#hud-volume-panel, fijo a nivel de body, se posiciona con JS). Se cierra al
+  tocar fuera, al salir a menú, al empezar partida y al cerrar sesión
+  (collapseVolumeControls() en showMenu/startGame/doLogout/openUserModal). En el
+  login se oculta el de la barra y aparece el flotante ARRIBA (top:62px, fuera
+  del globo del formulario aunque se abra el teclado).
+- MENÚ PRINCIPAL MÓVIL: sin fila usuario+dinero; bajo "¡DALE GAS!" va el botón
+  DEALER (mismo estilo, con dragón.jpg) que abre la tienda (solo con shopUnlocked).
+  NO hay DEALER en la barra de estado (solo la pestaña 🔮 Lopamuletos).
+- FLOTANTES MÓVIL: chat (izq bottom:10) y Amigos (izq bottom:64); ranking (der,
+  con la palabra "Ranking") e iPod (der) BAJADOS y alineados: shuffle bottom:10,
+  ranking bottom:68 (minimizado) / 268 (iPod completo) / 10 sin iPod. No pisan
+  el tablero en partida.
+- En partida (móvil): el título h1/.subtitle se ocultan con
+  body:has(#game-screen:not(.hidden)); la tienda se abre con el botón DEALER del
+  menú o el 💰 del HUD.
 - Resultado de partida en móvil: FIJO a 30vh, sin arrastre (asa .result-drag-handle
   display:none y startResultDrag ignora en móvil), posición guardada ignorada.
 - TECLADO: meta viewport interactive-widget=resizes-content (index.html) +
   .kb-open en body (initKeyboardDetect). Modales compactos: .kb-open .modal
   padding-top 96px + tarjeta recogida; vuelven solos al cerrar el teclado.
   Con .kb-open (o login abierto) se oculta .hud-amulets → barra de una fila.
-- Tienda móvil: .shop-right{display:contents} y order: dragón -2, cartera -1,
-  stock 1 (flex:1, overflow-y:auto con barra visible), ipod 2. .shop-card
-  max-height calc(100vh-170px).
+- TIENDA MÓVIL: una columna (dragón arriba, luego título 🐉 Tienda, dinero y el
+  scroll del stock). El iPod va DENTRO del scroll del stock (no ocupa slot fijo).
 - Login: botones .btn-neon (48px, nowrap) negros + ENTRAR .btn-start morado;
   Borrar/Generar con preventFocusSteal (no mueven el teclado).
 - Turulos en móvil = pulsación larga (pointerdown 420ms en #board, LP_MS); el
@@ -359,7 +377,39 @@ RESUMEN MOBILE — CÓMO PULIR SIN ROMPER (para próximas sesiones)
   de respaldo si el long-press no disparó (lpHandled). Ver initMobileLongPress.
   OJO al tocar esto: el click tras la pulsación se suprime (lpFiredCell/lpFiredUntil).
 - iPod móvil: botón #ipod-minimize-btn + #ipod-shuffle; se minimiza en startGame.
+  ARRANCA minimizado en TODAS las pantallas (móvil y PC), expandible.
 - Si tocas algo de UI, ejecuta npm run test-lopa y comprueba 390x844 (preview-mobile.sh).
+
+--------------------------------------------------------------------------------
+CAMBIOS RECIENTES (25/08) — BUGS Y LAYOUT MÓVIL
+--------------------------------------------------------------------------------
+- FLOOD BUG: revealCell() destapaba las MINAS vía flood (tienen board 0) y
+  decrementaba safeCellsRemaining por ellas: un clic en un 0 revelaba casi todo
+  el tablero y daba victorias "raras" (p. ej. al tocar el Spiz). FIX: guard
+  `if (mines.some(...)) return;` en revealCell (el flood se para en las bolsas).
+  En triggerSpiz, si el Spiz completa el tablero ahora es winGame(true) (Spiz
+  guardado), igual que cuando lo cierra el flood de revealCell.
+- ABANDONAR PARTIDA: abandonGame() (en showMenu y doLogout) — si hay partida en
+  curso (gameStarted && !gameOver) se da por PERDIDA sin logros ni dinero: corta
+  timer (timerInterval=null), mensajes de Lucifer, toasts, notices y confirm;
+  registra recordGameResult('loss') y NO suma timePlayed. saveStats() hace
+  SNAPSHOT del estado antes de subirlo (el reset del logout no pierde la pérdida).
+- VOLUMEN: botón en la barra + desplegable vertical debajo (#hud-volume-panel a
+  nivel de body, position:fixed colocado con JS). Se cierra al tocar fuera / ir a
+  menú / iniciar partida / cerrar sesión (collapseVolumeControls()). FIX bug: al
+  cerrar sesión con el desplegable abierto quedaba un resto del botón.
+- PIN DE LOPAMULETOS (móvil): solo los fijados (máx 4) se ven en la barra; el
+  resto vive en el panel #hud-amulets-panel. Botones Fijar (morado) / Quitar
+  (negro), toast "🔒 Máximo 4 LopAmuletos fijados".
+- MENÚ MÓVIL: quitada la fila usuario+dinero y la fila dorada de dinero; botón
+  DEALER bajo "¡DALE GAS!" (dragón.jpg, abre la tienda).
+- TIENDA: DOS COLUMNAS en PC (dragón grande a la izquierda a todo el alto;
+  derecha = título 🐉 Tienda + dinero 💰 + Stock de hoy + scroll). Quitado el
+  indicador grande de dinero. Clic en el dragón → vista ampliada #dragon-view
+  (se cierra con la X o clic fuera). En móvil una columna. iPod siempre DENTRO
+  del scroll del stock.
+- BOTONES FLOTANTES MÓVIL bajados y alineados (chat/shuffle bottom:10; amigos/
+  ranking bottom:64/68), iPod más pegado al ranking; no pisan el tablero.
 
 --------------------------------------------------------------------------------
 ESTADO GIT / GITHUB (desde 21/08)
@@ -372,17 +422,20 @@ ESTADO GIT / GITHUB (desde 21/08)
 - Commit inicial: "Buscalopas 2.3: primer commit" (todo el código y assets).
 - 22/08: commit "Buscalopas 2.5: móvil pulido..." (resultado fijo, sugerencias,
   teclado, login, tienda, túnel+QR en jugar.sh...).
+- 25/08: commit "Buscalopas 2.5: layout móvil (volumen, DEALER en menú, ranking/
+  iPod) + fix flood y abandono de partida" (este commit).
 - Subido a https://github.com/dumbopatin/buscalopas (rama master).
 - Flujo a seguir (solo cuando el usuario lo pida): git add -A && git commit -m
   "..." && git push.
 
--------------------------------------------------------------------------------
-PENDIENTE PARA EL DEPLOY (22/08, tras los cambios de esta sesión)
--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+PENDIENTE PARA EL DEPLOY (25/08, tras los cambios de esta sesión)
+--------------------------------------------------------------------------------
 - ⚠️ CREAR la tabla `suggestions` en Supabase (ejecutar la parte nueva de
   dev/supabase.sql) o las sugerencias solo se guardarán en local.
 - Subir a Netlify: index.html, game.js, style.css, config.js y textos.js
-  (config.js cambió la versión a 2.5; index.html añade interactive-widget).
+  (config.js cambió la versión a 2.5; index.html añade interactive-widget y el
+  nuevo panel de volumen + fila .hud-row2 + vista del dragón).
 - dev/ NO se sube (server.js, jugar.sh, supabase.sql, tests, resumen...).
 
 

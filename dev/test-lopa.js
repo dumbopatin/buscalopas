@@ -432,9 +432,9 @@ async function runTests(browser) {
 
     await check('La tienda abre con el dragón a la derecha y stock de hoy', async () => {
         await openMenu(page);
-        const vis = await page.locator('#shop-btn').isVisible();
+        const vis = await page.locator('#hud-shop-btn').isVisible();
         assert(vis, 'botón de tienda no visible (shopUnlocked)');
-        await page.locator('#shop-btn').click();
+        await page.locator('#hud-shop-btn').click();
         await page.waitForSelector('#shop-modal:not(.hidden)');
         const dragon = await page.locator('#shop-modal .shop-dragon img').getAttribute('src');
         assert(dragon && /dragon\.jpg/.test(dragon), `sprite del dragón: ${dragon}`);
@@ -446,7 +446,7 @@ async function runTests(browser) {
 
     await check('El Dragon Narco regala la Carta (reliquia) la primera vez', async () => {
         await openMenu(page);
-        await page.locator('#shop-btn').click();
+        await page.locator('#hud-shop-btn').click();
         await page.waitForSelector('#amulet-modal:not(.hidden)', { timeout: 3000 });
         const title = (await page.locator('#amulet-modal-title').innerText()).trim();
         assert(/Dragon Narco/i.test(title), `título del regalo: "${title}"`);
@@ -462,7 +462,7 @@ async function runTests(browser) {
 
     await check('Comprar un objeto del stock de hoy descuenta la cartera', async () => {
         await openMenu(page);
-        await page.locator('#shop-btn').click();
+        await page.locator('#hud-shop-btn').click();
         await page.waitForSelector('#shop-modal:not(.hidden)');
         await page.waitForTimeout(700);
         const giftOpen = await page.locator('#amulet-modal').evaluate(el => !el.classList.contains('hidden'));
