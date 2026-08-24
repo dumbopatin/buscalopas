@@ -134,7 +134,11 @@ RANKING / RESULTADO / CHAT / UI MÓVIL CLAVE
   index.html con <link rel="icon"> a img/buscalopas_cyber.jpg (nuevo). Ese
   mismo icono también va en el botón "Buscalopas" del HUD (a la izquierda del
   texto, PC y móvil) y en móvil el título del HUD ahora muestra la versión
-  ("Buscalopas 2.7") además del icono.
+  ("Buscalopas 2.7") además del icono. Preview al compartir: metadatos Open
+  Graph + Twitter en index.html (og:title/description/image apuntando a
+  https://buscalopas.netlify.app/img/buscalopas_cyber.jpg). OJO: si cambia el
+  dominio, actualizar la URL del og:image/twitter:image (WhatsApp cachea la
+  1ª previsualización).
 - 22/08: resultado fijo en móvil, sugerencias compartidas, teclado móvil,
   login pulido, tienda móvil, túnel+QR en jugar.sh.
 - 25/08: fix flood de minas (revealCell para en bolsas), abandonGame() (perder
