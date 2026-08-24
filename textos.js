@@ -52,7 +52,7 @@ window.TEXTOS = {
     // LopAmuletos (el orden de adquisición está en AMULET_ORDER en game.js)
     amuletos: {
         rizao: { name: 'Rizao', icon: '🕶️', img: 'img/amulets/rizao.png', desc: '+10% dinero al ganar' },
-        subidon: { name: 'Subidón', icon: '⏱️', img: 'img/amulets/subidon.png', desc: '+10s al entrar en modo Lucifer (1 vez por partida)' },
+        subidon: { name: 'Subidón', icon: '⏱️', img: 'img/amulets/subidon.png', desc: '+10s al entrar en modo Lucifer (cuesta 1 carga · recarga cada 3 victorias)' },
         iman: { name: 'Imán', icon: '🧲', img: 'img/amulets/iman.png', desc: 'El primer turulo de cada partida es gratis' },
         vidente: { name: 'Vidente', icon: '👁️', img: 'img/amulets/vidente.png', desc: 'Muestra dónde está el Spiz al empezar. Se recarga cada {VIDENTE_RECHARGE_EVERY} victorias.' },
         papu: { name: 'Papu', icon: '🤑', img: 'img/amulets/papu.png', desc: '+15s de tiempo inicial' },

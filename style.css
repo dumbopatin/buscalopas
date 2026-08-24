@@ -4504,58 +4504,93 @@ body.syntek-immunity #board {
         font-size: 1.1em;
     }
 
-    /* Tienda en móvil: TODO en una sola columna y un único scroll (el del
-       modal, sin scrolls anidados). El dragón arriba y más pequeño; el iPod
-       se une al final del stock. (.shop-right con display:contents suelta
-       sus hijos para poder reordenarlos con order.) */
+    /* Tienda en móvil: globo FIJO que llena la pantalla por debajo de la barra
+       de estado (sin scroll exterior: el único scroll es el del stock). Arriba
+       una fila con el dragón a la izquierda y el título + cartera a la derecha;
+       debajo, el STOCK OCUPA TODO EL ANCHO (con su cabecera "Stock de hoy"
+       fija) y es la única zona scrolleable. El iPod va DENTRO del scroll del
+       stock, como un artículo más. (.shop-right con display:contents suelta
+       sus hijos para poder reordenarlos con grid-template-areas.) */
+    #shop-modal.modal {
+        overflow: hidden;
+    }
+
     .shop-card {
         width: 100%;
         max-width: 100%;
-        max-height: calc(100vh - 170px);
+        height: calc(100vh - 162px);
+        height: calc(100dvh - 162px);
+        max-height: calc(100vh - 162px);
+        max-height: calc(100dvh - 162px);
     }
 
     .shop-layout {
-        grid-template-columns: 1fr;
-        gap: 12px;
+        display: grid;
+        grid-template-columns: 106px 1fr;
+        grid-template-rows: auto auto 1fr;
+        grid-template-areas:
+            "dragon title"
+            "dragon wallet"
+            "stock stock";
+        gap: 10px 12px;
         flex: 1;
         min-height: 0;
     }
 
     .shop-right {
-        flex: 1;
-        min-height: 0;
+        display: contents;
     }
 
     .shop-dragon {
+        grid-area: dragon;
         padding: 0;
-        flex: 0 0 auto;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
     }
 
     .shop-dragon img {
-        height: 150px;
-        width: auto;
-        max-width: 100%;
+        width: 100%;
+        height: auto;
+        max-height: 70px;
         object-fit: contain;
         border-radius: 16px;
     }
 
     .shop-title {
-        font-size: 1.1em;
+        grid-area: title;
+        font-size: 1.05em;
         padding-right: 30px;
+        text-align: left;
     }
 
     .shop-wallet {
-        font-size: 1em;
-        padding: 8px 12px;
+        grid-area: wallet;
+        font-size: 0.95em;
+        padding: 6px 10px;
+        text-align: left;
+        width: fit-content;
+        max-width: 100%;
     }
 
     .shop-stock {
+        grid-area: stock;
         flex: 1;
         min-height: 0;
         max-height: none;
         overflow-y: auto;
         scrollbar-width: thin;
         scrollbar-color: var(--accent-purple) rgba(255, 255, 255, 0.06);
+    }
+
+    /* La cabecera "Stock de hoy" queda fija arriba del scroll del stock
+       mientras los comprables pasan por debajo. */
+    .shop-today {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        background: var(--card-bg);
+        padding: 2px 0 6px;
     }
 
     .shop-stock::-webkit-scrollbar {
@@ -4839,15 +4874,16 @@ body.syntek-immunity #board {
         display: none;
     }
 
-    /* --- Botones de reliquias, más pequeños y no tapan el tablero --- */
-    .relic-dragon-btn {
+    /* --- Botones de reliquias, más pequeños y no tapan el tablero ---
+       Syntek SIEMPRE arriba (molesta menos); el dragón debajo. */
+    .relic-syntek-btn {
         left: 10px;
         top: 30%;
         width: 64px;
         height: 64px;
     }
 
-    .relic-syntek-btn {
+    .relic-dragon-btn {
         left: 10px;
         top: calc(30% + 76px);
         width: 64px;

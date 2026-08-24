@@ -8,6 +8,8 @@ let spizCell = null;
 // Bolsas desactivadas por el Milagro: se quedan visibles en el tablero.
 let milagroDisarmed = {};
 let syntekDisarmed = {};
+// La inmunidad de Syntek solo se puede usar UNA vez por partida.
+let syntekUsedThisGame = false;
 let spizTriggered = false;
 // La primera vez que se toca el Spiz se encola una notificación al final.
 let spizFirstTouch = false;
@@ -24,7 +26,6 @@ let popupTimeout = null;
 let imanUsedThisGame = false;
 let gameElapsed = 0;
 let subidonGraceTicks = 0;
-let subidonUsedThisGame = false;
 let hudCorrectTurulos = 0;
 let gameStartCorrectTurulos = 0;
 let gameCorrectTurulos = 0;
@@ -65,6 +66,8 @@ const RASTREADOR_UNLOCK = 50;
 const MILAGRO_RECHARGE_EVERY = 30;
 const ULTIMOBAILE_RECHARGE_EVERY = 40;
 const VIDENTE_RECHARGE_EVERY = 5;
+const SUBIDON_RECHARGE_EVERY = 3;
+const SUBIDON_MAX_CHARGES = 1;
 const SPIZ_REVEAL_THRESHOLDS = [3, 7, 12];
 
 const RELIC_DRAGON_EVERY = 10;
@@ -600,7 +603,7 @@ function emptyStats() {
         games: 0, wins: 0, losses: 0, bestEarning: 0, spizSaved: 0,
         timePlayed: 0, luciferReached: 0, luciferTime: 0, turulosWins: 0, correctTurulos: 0,
         ipod: false, ipodTrack: 'cyber', musicTime: {}, ipodNotified: [],
-        lopa: { shopUnlocked: false, owned: {}, active: {}, charges: { milagro: 0, ultimobaile: 0, vidente: 0 }, levels: { spiz: 0, dinero: 0, lucifer: 0 }, uses: { subidon: 0, dragon: 0 }, order: [], pinned: [], relicGames: 0, acquired: {} },
+        lopa: { shopUnlocked: false, owned: {}, active: {}, charges: { milagro: 0, ultimobaile: 0, vidente: 0, subidon: 0 }, levels: { spiz: 0, dinero: 0, lucifer: 0 }, uses: { subidon: 0, dragon: 0 }, order: [], pinned: [], relicGames: 0, acquired: {} },
         by: {}
     };
 }
@@ -634,7 +637,7 @@ function normalizeStats(s) {
             shopUnlocked: !!l.shopUnlocked,
             owned,
             active,
-            charges: { milagro: charges.milagro || 0, ultimobaile: charges.ultimobaile || 0, vidente: charges.vidente || 0 },
+            charges: { milagro: charges.milagro || 0, ultimobaile: charges.ultimobaile || 0, vidente: charges.vidente || 0, subidon: charges.subidon || 0 },
             levels: { spiz: levels.spiz || 0, dinero: levels.dinero || 0, lucifer: levels.lucifer || 0 },
             uses: { subidon: uses.subidon || 0, dragon: uses.dragon || 0 },
             order,
@@ -659,14 +662,52 @@ function hasStats(s) {
     return s.games > 0 || s.wins > 0 || s.losses > 0;
 }
 
+// La CONFIG del usuario (amuletos fijados/activos, orden, mejoras, cargas,
+// canción del iPod...) es de este navegador y es lo último que tocó el jugador.
+// El servidor puede ir por detrás (p. ej. al refrescar justo cuando una subida
+// iba en camino y se canceló), así que al cargar se FUSIONA la config local
+// sobre los datos del servidor para no perderla. Los contadores (partidas,
+// récords...) se quedan con lo que diga el servidor.
+function mergeConfigIntoServer(server, local) {
+    const s = server.lopa;
+    const l = (local && local.lopa) ? local.lopa : {};
+    for (const k in (l.owned || {})) { s.owned[k] = s.owned[k] || l.owned[k]; }
+    for (const k in (l.active || {})) { s.active[k] = l.active[k]; }
+    for (const k in (l.charges || {})) { s.charges[k] = Math.max(s.charges[k] || 0, l.charges[k] || 0); }
+    for (const k in (l.levels || {})) { s.levels[k] = Math.max(s.levels[k] || 0, l.levels[k] || 0); }
+    for (const k in (l.uses || {})) { s.uses[k] = Math.max(s.uses[k] || 0, l.uses[k] || 0); }
+    const order = [];
+    for (const id of (l.order || [])) if (!order.includes(id)) order.push(id);
+    for (const id of (s.order || [])) if (!order.includes(id)) order.push(id);
+    s.order = order;
+    const pinned = (l.pinned || []).filter(id => ALL_AMULETS[id] || UPGRADE_IDS.includes(id));
+    for (const id of (s.pinned || [])) {
+        if (pinned.length >= MAX_PINNED) break;
+        if (!pinned.includes(id) && (ALL_AMULETS[id] || UPGRADE_IDS.includes(id))) pinned.push(id);
+    }
+    s.pinned = pinned.slice(0, MAX_PINNED);
+    s.relicGames = Math.max(s.relicGames || 0, l.relicGames || 0);
+    if (l.shopUnlocked) s.shopUnlocked = true;
+    for (const k in (l.acquired || {})) { s.acquired[k] = l.acquired[k]; }
+    if (local && local.ipod) server.ipod = true;
+    if (local && local.ipodTrack && IPOD_TRACKS.some(t => t.id === local.ipodTrack)) server.ipodTrack = local.ipodTrack;
+    for (const id of (local && Array.isArray(local.ipodNotified) ? local.ipodNotified : [])) {
+        if (!server.ipodNotified.includes(id)) server.ipodNotified.push(id);
+    }
+    return server;
+}
+
 function loadStats(name, serverStats) {
     if (typeof serverStats === 'string') {
         try { serverStats = JSON.parse(serverStats); } catch (e) { serverStats = null; }
     }
+    const local = readLocalStats(name);
     if (serverStats && typeof serverStats === 'object' && typeof serverStats.games === 'number') {
-        statsData = normalizeStats(serverStats);
+        statsData = normalizeStats(mergeConfigIntoServer(normalizeStats(serverStats), local));
+        // La config local se devuelve al servidor para que se ponga al día.
+        pushStats(name, statsData).catch(() => {});
     } else {
-        statsData = readLocalStats(name);
+        statsData = local;
         if (hasStats(statsData)) {
             pushStats(name, statsData).catch(() => {});
         }
@@ -683,10 +724,10 @@ function applyDeityBoost() {
         l.owned[id] = true;
         l.active[id] = true;
     }
-    l.charges = { milagro: MAX_CHARGES, ultimobaile: MAX_CHARGES, vidente: MAX_CHARGES };
+    l.charges = { milagro: MAX_CHARGES, ultimobaile: MAX_CHARGES, vidente: MAX_CHARGES, subidon: SUBIDON_MAX_CHARGES };
     l.levels = { spiz: MAX_UPGRADE_LEVEL, dinero: MAX_UPGRADE_LEVEL };
     l.shopUnlocked = true;
-    for (const id of ['vidente', 'milagro', 'ultimobaile', 'rastreador']) setAmuletAcquired(id);
+    for (const id of ['vidente', 'milagro', 'ultimobaile', 'rastreador', 'subidon']) setAmuletAcquired(id);
 }
 
 function saveStats() {
@@ -1401,7 +1442,7 @@ function amuletBaseline(id) {
 function setAmuletAcquired(id) {
     statsData.lopa.active[id] = true;
     const acq = statsData.lopa.acquired || (statsData.lopa.acquired = {});
-    acq[id] = (id === 'vidente') ? (statsData.wins || 0) : (statsData.correctTurulos || 0);
+    acq[id] = (id === 'vidente' || id === 'subidon') ? (statsData.wins || 0) : (statsData.correctTurulos || 0);
 }
 
 function checkAmuletUnlocks() {
@@ -1414,6 +1455,9 @@ function checkAmuletUnlocks() {
             setAmuletAcquired(id);
             if (id === 'vidente') {
                 statsData.lopa.charges.vidente = (statsData.lopa.charges.vidente || 0) + 1;
+            }
+            if (id === 'subidon') {
+                statsData.lopa.charges.subidon = (statsData.lopa.charges.subidon || 0) + 1;
             }
             newly.push(id);
         }
@@ -1456,6 +1500,7 @@ function amuletProgress(id) {
     if (id === 'milagro') return { cur: Math.max(0, ct - amuletBaseline('milagro')) % MILAGRO_RECHARGE_EVERY, max: MILAGRO_RECHARGE_EVERY };
     if (id === 'ultimobaile') return { cur: Math.max(0, ct - amuletBaseline('ultimobaile')) % ULTIMOBAILE_RECHARGE_EVERY, max: ULTIMOBAILE_RECHARGE_EVERY };
     if (id === 'vidente') return { cur: Math.max(0, (statsData.wins || 0) - amuletBaseline('vidente')) % VIDENTE_RECHARGE_EVERY, max: VIDENTE_RECHARGE_EVERY };
+    if (id === 'subidon') return { cur: Math.max(0, (statsData.wins || 0) - amuletBaseline('subidon')) % SUBIDON_RECHARGE_EVERY, max: SUBIDON_RECHARGE_EVERY };
     if (id === 'dragon') return { cur: Math.min(statsData.lopa.relicGames || 0, RELIC_DRAGON_EVERY), max: RELIC_DRAGON_EVERY };
     return null;
 }
@@ -1493,7 +1538,7 @@ function renderHudAmulets() {
         const neg = a && a.negative ? ' amu-negative' : '';
         const inact = (!a.negative && isAmuletActive(id) === false) ? ' amu-inactive' : '';
         const prog = amuletProgress(id);
-        const progBadge = (prog && (id === 'rastreador' || id === 'vidente' || id === 'dragon')) ? `<span class="amu-prog">${prog.cur >= prog.max ? '✓' : `${prog.cur}/${prog.max}`}</span>` : '';
+        const progBadge = (prog && (id === 'rastreador' || id === 'vidente' || id === 'dragon' || id === 'subidon')) ? `<span class="amu-prog">${prog.cur >= prog.max ? '✓' : `${prog.cur}/${prog.max}`}</span>` : '';
         html += `<div class="amu${neg}${inact}" data-amulet-id="${id}">${amuletVisual(id)}${chargeBadge}${progBadge}</div>`;
     }
     // Botón "ver todos" (solo en móvil): la píldora "Lopamuletos" SIEMPRE que
@@ -1529,7 +1574,7 @@ function renderHudAmuletsPanel() {
         const neg = a && a.negative ? ' hap-negative' : '';
         const inact = (!a.negative && isAmuletActive(id) === false) ? ' hap-inactive' : '';
         const prog = amuletProgress(id);
-        const progBadge = (prog && (id === 'rastreador' || id === 'vidente' || id === 'dragon')) ? `<span class="hap-prog">${prog.cur >= prog.max ? '✓' : `${prog.cur}/${prog.max}`}</span>` : '';
+        const progBadge = (prog && (id === 'rastreador' || id === 'vidente' || id === 'dragon' || id === 'subidon')) ? `<span class="hap-prog">${prog.cur >= prog.max ? '✓' : `${prog.cur}/${prog.max}`}</span>` : '';
         html += `<div class="hap-item${neg}${inact}${pinned ? ' hap-pinned' : ''}" data-amulet-id="${id}">${amuletVisual(id)}${chargeBadge}${progBadge}<span class="hap-name">${escapeHtml((a && a.name) || id)}</span><div class="hap-footer"><span class="hap-status">${amuletStatusText(id)}</span>${pinBtn}</div></div>`;
     }
     if (!html) {
@@ -1579,6 +1624,7 @@ function amuletStatusText(id) {
         return (prog && prog.cur >= prog.max) ? '✅ Lista' : '⏳ Recarga';
     }
     if (a && a.relic) return isAmuletActive(id) ? '🟢 Activa' : '⚫ Inactiva';
+    if (id === 'subidon') return (statsData.lopa.charges.subidon || 0) > 0 ? '✅ Carga' : '⏳ Recarga';
     if (CHARGE_AMULETS[id]) return (statsData.lopa.charges[id] || 0) > 0 ? '✅ Disponible' : '⏳ Recarga';
     return isAmuletActive(id) ? '🟢 Activo' : '⚫ Inactivo';
 }
@@ -1662,7 +1708,7 @@ function showAmuletTooltip(id, e) {
     } else if (id === 'rastreador' && prog) {
         extra = `<div class="amulet-tip-desc amulet-tip-prog">Progreso: ${prog.cur}/${prog.max}</div>`;
     } else if (id === 'subidon') {
-        extra = `<div class="amulet-tip-desc amulet-tip-prog">Usado ${statsData.lopa.uses.subidon || 0} vez(es) · 1 por partida</div>`;
+        extra = `<div class="amulet-tip-desc amulet-tip-prog">Cargas: ${statsData.lopa.charges.subidon || 0}/${SUBIDON_MAX_CHARGES} · Recarga cada ${SUBIDON_RECHARGE_EVERY} victorias</div>`;
     } else if (isAmuletToggleable(id)) {
         extra = `<div class="amulet-tip-desc amulet-tip-prog">${isAmuletActive(id) ? '🟢 Activo' : '⚫ Inactivo'} · Clic para activar/desactivar</div>`;
     }
@@ -1718,7 +1764,7 @@ function openAmuletModal(id, unlock = false) {
     } else if (id === 'rastreador' && prog) {
         state = `Progreso: ${prog.cur}/${prog.max} turulos`;
     } else if (id === 'subidon') {
-        state = `Usado ${statsData.lopa.uses.subidon || 0} vez(es) · 1 por partida`;
+        state = `Cargas: ${statsData.lopa.charges.subidon || 0}/${SUBIDON_MAX_CHARGES} · Recarga ${prog.cur}/${prog.max} victorias`;
     } else if (id === 'syntek') {
         const song = (getActiveTrack() && getActiveTrack().id === 'dueleamor');
         state = isAmuletActive(id)
@@ -2127,6 +2173,7 @@ function dragonRelicReady() {
 function syntekRelicReady() {
     return !!statsData.lopa.owned.syntek &&
         statsData.lopa.active.syntek !== false &&
+        !syntekUsedThisGame &&
         getActiveTrack() && getActiveTrack().id === 'dueleamor';
 }
 
@@ -2168,7 +2215,9 @@ function positionRelicButton() {
     let left = Math.round(b.right + 20);
     if (left + 86 > window.innerWidth - 12) left = window.innerWidth - 86 - 12;
     const top = Math.round(b.top + (b.height - btnH) / 2);
-    const visible = [relicDragonBtnEl, relicSyntekBtnEl].filter(el => el && !el.classList.contains('hidden'));
+    // Syntek SIEMPRE encima (molesta menos); el dragón debajo. El primero del
+    // array es el que se coloca más arriba.
+    const visible = [relicSyntekBtnEl, relicDragonBtnEl].filter(el => el && !el.classList.contains('hidden'));
     visible.forEach((el, i) => {
         el.style.left = left + 'px';
         el.style.top = Math.max(90, top + i * 102) + 'px';
@@ -2205,6 +2254,7 @@ function syntekImmunityActive() {
 
 function useRelicSyntek() {
     if (!syntekRelicReady() || gameOver) return;
+    syntekUsedThisGame = true;
     syntekImmunityUntil = Date.now() + SYNTEK_IMMUNITY_MS;
     document.body.classList.add('syntek-immunity');
     if (syntekImmunityTimer) clearTimeout(syntekImmunityTimer);
@@ -2213,6 +2263,7 @@ function useRelicSyntek() {
     }, SYNTEK_IMMUNITY_MS);
     statsData.lopa.uses.syntek = (statsData.lopa.uses.syntek || 0) + 1;
     saveStats();
+    updateRelicSyntekButton();
     showToast('🛡️ ¡Inmunidad Syntek! 3 segundos sin miedo a las bolsas.', 'spiz');
 }
 
@@ -3052,6 +3103,13 @@ function settleGameCounters() {
         const n = Math.floor((w - base) / VIDENTE_RECHARGE_EVERY) - Math.floor((wstart - base) / VIDENTE_RECHARGE_EVERY);
         for (let i = 0; i < n; i++) rechargeVidente();
     }
+    if (statsData.lopa.owned.subidon) {
+        const w = statsData.wins || 0;
+        const wstart = gameStartWins || 0;
+        const base = amuletBaseline('subidon');
+        const n = Math.floor((w - base) / SUBIDON_RECHARGE_EVERY) - Math.floor((wstart - base) / SUBIDON_RECHARGE_EVERY);
+        for (let i = 0; i < n; i++) rechargeSubidon();
+    }
     hudCorrectTurulos = ct;
     renderHudAmulets();
 }
@@ -3060,6 +3118,14 @@ function rechargeVidente() {
     const c = statsData.lopa.charges.vidente || 0;
     if (c >= MAX_CHARGES) return;
     statsData.lopa.charges.vidente = c + 1;
+    saveStats();
+    renderHudAmulets();
+}
+
+function rechargeSubidon() {
+    const c = statsData.lopa.charges.subidon || 0;
+    if (c >= SUBIDON_MAX_CHARGES) return;
+    statsData.lopa.charges.subidon = c + 1;
     saveStats();
     renderHudAmulets();
 }
@@ -3348,8 +3414,8 @@ function buyIpod() {
     renderShopIpod();
     renderIpodPanel();
     playUiSound();
-    checkIpodTrackUnlocks();
     showToast('🎵 ¡iPod comprado! Elige tu música de fondo.');
+    checkIpodTrackUnlocks(1600);
 }
 
 function giftDragonRelic() {
@@ -3401,19 +3467,21 @@ function ipodTrackUnlocked(track) {
 }
 
 // Avisa de las canciones NUEVAS del iPod (solo si se tiene el iPod; si se
-// cumple el hito sin tenerlo, se espera a comprarlo para informar).
-function checkIpodTrackUnlocks() {
+// cumple el hito sin tenerlo, se espera a comprarlo para informar). La marca
+// de "ya avisada" se guarda al momento; los TOASTS salen en orden, uno tras
+// otro (delayMs permite posponerlos para no pisar al toast anterior, p. ej.
+// el "Comprado" de la tienda).
+function checkIpodTrackUnlocks(delayMs = 0) {
     if (!statsData.ipod) return;
     const notified = statsData.ipodNotified || (statsData.ipodNotified = []);
     let changed = false;
+    const fresh = [];
     for (const t of IPOD_TRACKS) {
         if (t.id === 'cyber' || notified.includes(t.id)) continue;
         if (ipodTrackUnlocked(t)) {
             notified.push(t.id);
+            fresh.push(t.id);
             changed = true;
-            const meta = (TX.ipod && TX.ipod.tracks && TX.ipod.tracks[t.id]) || {};
-            showToast(`🎵 ¡Canción nueva en el iPod: ${meta.name || t.id}!`, 'unlock');
-            playUiSound();
         }
     }
     if (changed) {
@@ -3421,6 +3489,15 @@ function checkIpodTrackUnlocks() {
         renderIpodTrackList();
         renderIpodPanel();
     }
+    if (!fresh.length) return;
+    const showOne = (i) => {
+        if (i >= fresh.length) return;
+        const meta = (TX.ipod && TX.ipod.tracks && TX.ipod.tracks[fresh[i]]) || {};
+        showToast(`🎵 ¡Canción nueva en el iPod: ${meta.name || fresh[i]}!`, 'unlock');
+        playUiSound();
+        setTimeout(() => showOne(i + 1), 2600);
+    };
+    setTimeout(() => showOne(0), delayMs);
 }
 
 function getActiveTrack() {
@@ -3715,8 +3792,8 @@ function buyShopItem(item) {
     updateDifficultyOptions();
     updateSizeOptions();
     renderShop();
-    checkIpodTrackUnlocks();
     showToast(`🛒 Comprado: ${item.name}`);
+    checkIpodTrackUnlocks(1600);
 }
 
 function refreshProgressionUI() {
@@ -4044,7 +4121,7 @@ function initGame() {
     gameCorrectTurulosLucifer = 0;
     luciferElapsed = 0;
     subidonGraceTicks = 0;
-    subidonUsedThisGame = false;
+    syntekUsedThisGame = false;
     gameEarnedAmulets = [];
     resultAmuletIds = [];
     clearLastResult();
@@ -4175,13 +4252,14 @@ function enterLuciferState() {
     checkAmuletUnlocks();
     rechargeUltimoBaile();
 
-    if (isAmuletActive('subidon') && !subidonUsedThisGame) {
-        subidonUsedThisGame = true;
+    if (isAmuletActive('subidon') && (statsData.lopa.charges.subidon || 0) > 0) {
+        statsData.lopa.charges.subidon = (statsData.lopa.charges.subidon || 0) - 1;
         statsData.lopa.uses.subidon = (statsData.lopa.uses.subidon || 0) + 1;
         timeRemaining += SUBIDON_TIME;
         updateTimerDisplay();
         subidonGraceTicks = 2;
         saveStats();
+        renderHudAmulets();
         showToast('⏱️ ¡Amuleto del Subidón! +10s');
     }
 
@@ -5360,6 +5438,9 @@ if (hudAmuletsEl) {
         openAmuletModal(el.dataset.amuletId);
     });
     hudAmuletsEl.addEventListener('mouseover', (e) => {
+        // En táctil no hay "hover": al tocar un LopAmuleto se abre el visor con
+        // toda la info y el tooltip de hover sobraría (redundante).
+        if (isMobileView() || ('ontouchstart' in window)) return;
         const el = e.target.closest('.amu');
         if (el) showAmuletTooltip(el.dataset.amuletId, e);
     });

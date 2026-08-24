@@ -28,7 +28,7 @@ const SEED_STATS = {
             board15: true, board20: true, chami: true
         },
         active: { papu: false, vidente: false, iman: false, rastreador: false, rizao: false },
-        charges: { milagro: 1, ultimobaile: 1, vidente: 1 },
+        charges: { milagro: 1, ultimobaile: 1, vidente: 1, subidon: 1 },
         levels: { spiz: 3, dinero: 3 },
         uses: { subidon: 0 },
         order: SEED_ORDER.slice()
