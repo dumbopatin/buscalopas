@@ -1,5 +1,5 @@
 ================================================================================
-BUSCALOPAS — RESUMEN DE CONTEXTO (sintetizado, última actualización 24/08)
+BUSCALOPAS — RESUMEN DE CONTEXTO (sintetizado, última actualización 25/08)
 ================================================================================
 Juego tipo buscaminas "Cyber-Lopera" (móvil + desktop). Repo git desde 21/08.
 Histórico detallado antiguo: dev/resumen-historico-2026-08-20.txt (solo si se
@@ -27,6 +27,37 @@ TRABAJAR / VERIFICAR
 - Tests: `cd dev && npm run test-lopa` (Playwright, 48 checks). Balance:
   `npm run balance`. Sintaxis: `node --check game.js` (y server.js, tests).
 - Tras tocar UI/lógica: npm run test-lopa + comprobar 390x844.
+
+IA PARA SPRITES (INSTALADA 25/08) — HERRAMIENTA EXTERNA, no es código del juego
+- Stable Diffusion WebUI (fork DirectML de lshqqytiger) en
+  ~/stable-diffusion-webui-directml, con modelo Deliberate v2 cargado por defecto.
+  Usa la RX 6700 XT vía DirectML en WSL2 (ROCm/ZLUDA NO funcionan en WSL; DirectML
+  usa /dev/dxg + libd3d12). Genera 512x512 en ~11s. No tocar estos 2 dirs con el
+  juego ni subirlos a Netlify: están fuera del repo del buscalopas.
+- ARRANCAR: `cd ~/stable-diffusion-webui-directml && bash arranca.sh`. La UI sale
+  en http://localhost:7860 (abrirlo desde el navegador de WINDOWS; WSL reenvía
+  localhost). Lanzador: webui-user.sh con COMMANDLINE_ARGS="--use-directml
+  --skip-torch-cuda-test --api" y python_cmd=Python 3.12 de uv (NO el 3.14 del
+  sistema). Al parar el PC hay que volver a arrancarlo con ese comando.
+- CLI DE SPRITES (si el webui está corriendo):
+  `bash ~/stable-diffusion-webui-directml/haz-sprite.sh "DESCRIPCIÓN" [salida.png]
+  [tamaño]` → genera 512x512, recorta a cuadrado, reduce a pixel-art (tamaño por
+  defecto 64) y deja transparente el fondo negro. Ej:
+  bash ~/stable-diffusion-webui-directml/haz-sprite.sh "papela ciberpunk" \
+  ~/proyectos/buscalopas/img/papela2.png 64
+- TAMBIÉN se puede usar la UI web: pestañas txt2img/img2img, negative prompt,
+  batch, seeds, etc. La API queda en /sdapi/v1/txt2img (activada con --api).
+- TRUCOS: fondo sale negro o blanco según prompt (mejor pedir "solid black
+  background" para que el script lo haga transparente); para meterse en img/
+  del juego conviene 64x64 o 32x32 y luego afinarlo. Los sprites existentes
+  (papela.jpg, spiz.jpg, turulo.jpg, dragon.jpg, ipod.jpg, amulets/) se pueden
+  regenerar con este método y reemplazar.
+- OJO INSTALACIÓN (si algo se rompe): pip exige Python 3.12 (torch-directml
+  0.2.5.dev solo hasta cp312). En requirements_versions.txt se subieron
+  scikit-image→0.24.0, Pillow→10.4.0, blendmodes→2023 y se añadió pydantic<2
+  (las versiones originales no compilaban con GCC moderno). modules/launch_utils.py
+  parcheado: en Linux instala onnxruntime normal (onnxruntime-directml es solo
+  Windows).
 
 ARQUITECTURA DE DATOS (DOBLE BACKEND)
 - Producción = Netlify + Supabase SOLO (tablas: scores, friendships,
@@ -119,6 +150,9 @@ RANKING / RESULTADO / CHAT / UI MÓVIL CLAVE
   contextmenu; suprime el click tras la pulsación (lpFiredCell/lpFiredUntil).
 
 ÚLTIMAS SESIONES (lo aún no asimilado se resume aquí)
+- 25/08: instalada IA para hacer sprites del juego: SD WebUI (fork DirectML) +
+  Deliberate v2 usando la RX 6700 XT en WSL2 (ver sección "IA PARA SPRITES"
+  arriba). Probada generación 512x512 y helper haz-sprite.sh (pixel-art).
 - 24/08: BUSCALOPAS 2.7 (deploy Netlify). Fix volumen en login: openUserModal
   refresca el icono con applyVolume (1ª vez o tras logout); en móvil el
   circulito del login ya muestra el icono dentro (el flex lo sacaba del
