@@ -39,6 +39,37 @@ IA PARA SPRITES (INSTALADA 25/08) — HERRAMIENTA EXTERNA, no es código del jue
   localhost). Lanzador: webui-user.sh con COMMANDLINE_ARGS="--use-directml
   --skip-torch-cuda-test --api" y python_cmd=Python 3.12 de uv (NO el 3.14 del
   sistema). Al parar el PC hay que volver a arrancarlo con ese comando.
+- RUTINA TRAS ENCENDER EL PC (25/08: la GPU fallaba "Device removed"
+  DXGI_ERROR_DEVICE_REMOVED al cargar el modelo tras reiniciar WSL; dmesg daba
+  dxgkio_query_adapter_info/lock2 Ioctl failed): cada vez que se encienda o
+  reinicie el PC, ejecutar en PowerShell de Windows `wsl --shutdown` ANTES de
+  arrancar la webui, luego `bash arranca.sh`. Si sigue fallando, reiniciar
+  Windows. (La GPU funciona bien en aislamiento; el problema es la pasarela
+  dxg de WSL al bootear.)
+- ARRANQUE EN BACKGROUND (26/08): para que la webui no dependa de una terminal,
+  lanzar con `cd ~/stable-diffusion-webui-directml && setsid bash webui.sh >
+  /tmp/opencode/webui.log 2>&1 < /dev/null &`. Matar el proceso previo con
+  `kill <PID>` (ps aux | grep launch.py) antes de relanzar.
+- FIX OOM "Could not allocate tensor" (26/08): tras la 1ª generación, una 2ª
+  podía fallar pidiendo 2 GiB y no quedar memoria. CAUSA: mem_get_info de
+  DirectML en Linux devuelve valores FALSOS (8 GB fijos en modules/dml/backend.py
+  ~22-23, porque el provider atiadlxx no existe en Linux/WSL) → einsum_op_dml
+  creía que sobraba VRAM e intentaba el einsum de atención ENTERO (2 GiB con
+  batch 4) → OOM. SOLUCIÓN aplicada en modules/sd_hijack_optimizations.py
+  (backup .bak): einsum_op_dml fuerza max_tensor_mb=512 para fragmentar siempre.
+  VERIFICADO: batch 1/2/3/4 OK (8 consultas seguidas sin fallos; batch 4 ~37s,
+  batch 1 ~10s). OJO: mem provider "atiadlxx (AMD only)" NO se puede activar en
+  Linux (no existe libatiadlxx.so) y el reporte /sdapi/v1/memory sale
+  "unavailable" SIEMPRE en WSL2: es esperado, no un fallo.
+- OJO PROMPTS para fondos transparentes (26/08): Deliberate ignora "solid black
+  background" a secas → sale fondo marrón/ámbar que no se transparenta. Lo que
+  SÍ funciona: `(solid pure black background:1.4)` en positivo + en negativo
+  `amber, brown background, beige background, golden background, vignette,
+  gradient background, studio backdrop, seamless background`. Y con "game icon"
+  Deliberate pinta un BADGE/blanco circular detrás del objeto → añadir al
+  negativo `white circle, circular badge, badge, icon badge, circle frame,
+  roundel, medallion, coin, emblem, ring, white background`. Regenerar SIEMPRE
+  con txt2img (img2img sobre un sprite previo arrastra el badge).
 - CLI DE SPRITES (si el webui está corriendo):
   `bash ~/stable-diffusion-webui-directml/haz-sprite.sh "DESCRIPCIÓN" [salida.png]
   [tamaño]` → genera 512x512, recorta a cuadrado, reduce a pixel-art (tamaño por
@@ -150,6 +181,17 @@ RANKING / RESULTADO / CHAT / UI MÓVIL CLAVE
   contextmenu; suprime el click tras la pulsación (lpFiredCell/lpFiredUntil).
 
 ÚLTIMAS SESIONES (lo aún no asimilado se resume aquí)
+- 26/08: intento de TEMA NUEVO de sprites de LopAmuletos (lujo farlopero clásico,
+  cuero, dorados; fondo rojo aterciopelado solo para el tema del juego, NO en los
+  sprites) con sprites SIN círculo estilo Slay the Spire (reborde negro).
+  RESULTADO: NO convenció → REVERTIDO. El juego queda con los círculos de siempre
+  (git checkout de game.js/style.css/textos.js) y se borraron los rizao*.png
+  generados. Conclusión: Deliberate no da la calidad/limpieza buscada aún; quedan
+  lecciones de prompts anotadas en la sección "IA PARA SPRITES". PRÓXIMA VEZ:
+  refinar prompts o probar otro modelo/estilo antes de tocar el juego; y los
+  LopAmuletos por ahora se quedan como están (círculos + emoji).
+- 26/08: fix OOM del webui (batch 4) y arranque en background con setsid (ver
+  sección "IA PARA SPRITES").
 - 25/08: instalada IA para hacer sprites del juego: SD WebUI (fork DirectML) +
   Deliberate v2 usando la RX 6700 XT en WSL2 (ver sección "IA PARA SPRITES"
   arriba). Probada generación 512x512 y helper haz-sprite.sh (pixel-art).
